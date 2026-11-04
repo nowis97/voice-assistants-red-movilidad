@@ -34,6 +34,11 @@ def root():
     }
 
 
+@app.get("/alexa")
+def alexa_status():
+    return {"status": "ok", "message": "Alexa Red Movilidad webhook endpoint activo"}
+
+
 @app.post("/alexa")
 async def alexa_endpoint(request: Request):
     """
