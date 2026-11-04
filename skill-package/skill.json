@@ -1,0 +1,38 @@
+{
+  "manifest": {
+    "publishingInformation": {
+      "locales": {
+        "es-ES": {
+          "summary": "Consulta de saldo Bip! y tiempo de llegada de micros de Red Movilidad en Santiago de Chile.",
+          "examplePhrases": [
+            "Alexa, abre mi micro",
+            "Alexa, pregúntale a mi micro cuánto saldo me queda",
+            "Alexa, pregúntale a mi micro cuánto le falta a la 401"
+          ],
+          "name": "Mi Micro - Red Movilidad",
+          "description": "Skill para consultar el saldo en tiempo real de tu tarjeta Bip! y el predictivo de llegada de buses de Red Metropolitana de Movilidad (Santiago de Chile)."
+        }
+      },
+      "isAvailableWorldwide": true,
+      "testingInstructions": "Configura DEFAULT_BIP_NUMBER y DEFAULT_STOP_CODE en el backend.",
+      "category": "NAVIGATION_AND_TRIP_PLANNER",
+      "distributionCountries": []
+    },
+    "apis": {
+      "custom": {
+        "endpoint": {
+          "uri": "arn:aws:lambda:us-east-1:000000000000:function:alexa-red-movilidad"
+        },
+        "interfaces": []
+      }
+    },
+    "manifestVersion": "1.0",
+    "privacyAndCompliance": {
+      "allowsPurchases": false,
+      "usesPersonalInfo": false,
+      "isChildDirected": false,
+      "isExportCompliant": true,
+      "containsAds": false
+    }
+  }
+}

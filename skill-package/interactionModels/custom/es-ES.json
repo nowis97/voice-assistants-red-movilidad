@@ -1,0 +1,124 @@
+{
+  "interactionModel": {
+    "languageModel": {
+      "invocationName": "mi micro",
+      "intents": [
+        {
+          "name": "AMAZON.CancelIntent",
+          "samples": [
+            "cancelar",
+            "cancela",
+            "olvídalo",
+            "para"
+          ]
+        },
+        {
+          "name": "AMAZON.HelpIntent",
+          "samples": [
+            "ayuda",
+            "qué puedes hacer",
+            "cómo funciona",
+            "qué comandos tienes"
+          ]
+        },
+        {
+          "name": "AMAZON.StopIntent",
+          "samples": [
+            "detener",
+            "adiós",
+            "chao",
+            "para ya",
+            "salir",
+            "terminar"
+          ]
+        },
+        {
+          "name": "AMAZON.NavigateHomeIntent",
+          "samples": []
+        },
+        {
+          "name": "SaldoBipIntent",
+          "slots": [
+            {
+              "name": "numeroTarjeta",
+              "type": "AMAZON.SearchQuery"
+            }
+          ],
+          "samples": [
+            "cuánto saldo tengo",
+            "cuánto le queda a mi bip",
+            "saldo de mi tarjeta",
+            "saldo de la tarjeta bip",
+            "cuánto dinero tengo en la tarjeta",
+            "cuál es mi saldo",
+            "dime el saldo",
+            "consulta el saldo",
+            "cuánto saldo tiene la tarjeta {numeroTarjeta}",
+            "saldo de la bip {numeroTarjeta}",
+            "cuánto tiene la tarjeta {numeroTarjeta}"
+          ]
+        },
+        {
+          "name": "PrediccionMicroIntent",
+          "slots": [
+            {
+              "name": "linea",
+              "type": "AMAZON.SearchQuery"
+            },
+            {
+              "name": "paradero",
+              "type": "AMAZON.SearchQuery"
+            }
+          ],
+          "samples": [
+            "cuándo viene la micro",
+            "dónde viene la micro",
+            "cuánto le falta a la micro",
+            "a qué hora pasa la micro",
+            "cuánto le falta a la {linea}",
+            "dónde viene la {linea}",
+            "cuándo pasa la {linea}",
+            "a qué hora llega la {linea}",
+            "cuándo llega la micro {linea}",
+            "dónde está la micro {linea}",
+            "cuánto le falta a la {linea} en el paradero {paradero}",
+            "dónde viene la {linea} en {paradero}",
+            "cuándo llega la {linea} a {paradero}",
+            "cuándo pasa la {linea} por {paradero}",
+            "qué micros vienen en el paradero {paradero}",
+            "qué buses vienen al paradero {paradero}"
+          ]
+        },
+        {
+          "name": "ResumenViajeIntent",
+          "slots": [],
+          "samples": [
+            "alcanzo a salir",
+            "debo salir ya",
+            "cómo está mi viaje",
+            "resumen de viaje",
+            "cuándo tengo que salir",
+            "puedo salir ahora",
+            "alcanzo a tomar la micro"
+          ]
+        },
+        {
+          "name": "BusesEnRutaIntent",
+          "slots": [
+            {
+              "name": "linea",
+              "type": "AMAZON.SearchQuery"
+            }
+          ],
+          "samples": [
+            "cuántos buses hay en la {linea}",
+            "cuántas micros hay en la {linea}",
+            "cuántos buses están circulando en la {linea}",
+            "buses activos en el recorrido {linea}"
+          ]
+        }
+      ],
+      "types": []
+    }
+  }
+}
