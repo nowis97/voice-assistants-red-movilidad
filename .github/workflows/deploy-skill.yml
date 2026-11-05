@@ -31,4 +31,4 @@ jobs:
           ASK_REFRESH_TOKEN: ${{ secrets.ASK_REFRESH_TOKEN }}
           ASK_VENDOR_ID: ${{ secrets.ASK_VENDOR_ID }}
         run: |
-          ask deploy --target skill-metadata --no-interactive
+          ask deploy --target skill-metadata --ignore-hash
