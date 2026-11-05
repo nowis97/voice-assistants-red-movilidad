@@ -26,9 +26,25 @@ jobs:
       - name: Install ASK CLI
         run: npm install -g ask-cli
 
-      - name: Deploy Skill Metadata (Models & Manifest)
+      - name: Configure ASK CLI Credentials
         env:
           ASK_REFRESH_TOKEN: ${{ secrets.ASK_REFRESH_TOKEN }}
           ASK_VENDOR_ID: ${{ secrets.ASK_VENDOR_ID }}
+        run: |
+          mkdir -p ~/.ask
+          cat << EOF > ~/.ask/cli_config
+          {
+            "profiles": {
+              "default": {
+                "token": {
+                  "refresh_token": "$ASK_REFRESH_TOKEN"
+                },
+                "vendor_id": "$ASK_VENDOR_ID"
+              }
+            }
+          }
+          EOF
+
+      - name: Deploy Skill Metadata (Models & Manifest)
         run: |
           ask deploy --target skill-metadata --ignore-hash
