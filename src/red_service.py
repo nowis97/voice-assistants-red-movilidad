@@ -3,6 +3,15 @@ import requests
 from typing import Optional, Dict, Any, List
 import config
 
+try:
+    from src.location_service import clean_intersection_name
+except ImportError:
+    try:
+        from location_service import clean_intersection_name
+    except ImportError:
+        def clean_intersection_name(name: str) -> str:
+            return name
+
 logger = logging.getLogger(__name__)
 
 TIMEOUT_SECONDS = 8
@@ -161,6 +170,20 @@ def format_balance_speech(bip_code: Optional[str] = None, user_name: Optional[st
     return f"{saludo} tarjeta Bip tiene un saldo de {balance} pesos.{alerta}"
 
 
+def _format_single_bus_arrival(bus: Dict[str, Any]) -> str:
+    """Helper interno para describir llegada de un bus."""
+    max_t = bus.get("max_time", 0)
+    min_t = bus.get("min_time", 0)
+    meters = bus.get("meters", 0)
+
+    if max_t <= 1 or meters <= 100:
+        return "está llegando ahora mismo"
+    elif min_t == max_t or min_t == 0:
+        return f"le faltan unos {max_t} minutos"
+    else:
+        return f"le faltan entre {min_t} y {max_t} minutos"
+
+
 def format_prediction_speech(
     stop_code: Optional[str] = None,
     service: Optional[str] = None,
@@ -187,16 +210,8 @@ def format_prediction_speech(
     # Tomar el bus más próximo
     first = buses[0]
     linea = first["service"]
-    min_t = first["min_time"]
-    max_t = first["max_time"]
     meters = first["meters"]
-
-    if max_t <= 1 or meters <= 100:
-        tiempo_texto = "está llegando ahora mismo"
-    elif min_t == max_t or min_t == 0:
-        tiempo_texto = f"le faltan unos {max_t} minutos"
-    else:
-        tiempo_texto = f"le faltan entre {min_t} y {max_t} minutos"
+    tiempo_texto = _format_single_bus_arrival(first)
 
     distancia_texto = f"a {meters} metros" if meters > 0 else "en el paradero"
 
@@ -211,6 +226,76 @@ def format_prediction_speech(
         speech += f" También la {second['service']} viene a unos {second['max_time']} minutos."
 
     return speech
+
+
+def format_dual_prediction_speech(
+    linea: str,
+    stop_ida: Dict[str, Any],
+    stop_vuelta: Optional[Dict[str, Any]] = None,
+    intersection: Optional[str] = None,
+    sentido_query: Optional[str] = None
+) -> str:
+    """
+    Construye la respuesta hablada de predicción para un recorrido en la esquina del usuario,
+    reportando ambos paraderos enfrentados o discriminando si el usuario pidió un sentido específico.
+    """
+    code_ida = stop_ida.get("code")
+    code_vuelta = stop_vuelta.get("code") if stop_vuelta else None
+    raw_corner = intersection or stop_ida.get("name", "tu esquina")
+    corner = clean_intersection_name(raw_corner) if (raw_corner and raw_corner != "tu esquina") else raw_corner
+
+    # Si el usuario consultó un sentido específico (ej: "de ida", "hacia el centro", "vuelta", "regreso")
+    if sentido_query:
+        norm_sentido = sentido_query.lower()
+        es_vuelta = any(w in norm_sentido for w in ["vuelta", "regreso", "casa", "peñalolén", "barrio"])
+        target_stop = stop_vuelta if (es_vuelta and stop_vuelta) else stop_ida
+        label_sentido = "de vuelta" if (es_vuelta and stop_vuelta) else "de ida"
+
+        res = get_stop_predictions(target_stop.get("code"), linea)
+        if not res["success"]:
+            return f"No pude consultar la {linea} {label_sentido} en el paradero {target_stop.get('code')}."
+
+        buses = res.get("buses", [])
+        if not buses:
+            return f"No vienen micros de la {linea} {label_sentido} acercándose al paradero {target_stop.get('code')} en {corner}."
+
+        first = buses[0]
+        arrival_str = _format_single_bus_arrival(first)
+        dist_str = f"a {first['meters']} metros" if first.get("meters") else "en camino"
+        return f"La {linea} {label_sentido} viene en {corner} (paradero {target_stop.get('code')}) {dist_str}, {arrival_str}."
+
+    # Consulta general sin sentido especificado: consultar ambos paraderos
+    res_ida = get_stop_predictions(code_ida, linea)
+    res_vuelta = get_stop_predictions(code_vuelta, linea) if (code_vuelta and code_vuelta != code_ida) else None
+
+    buses_ida = res_ida.get("buses", []) if res_ida.get("success") else []
+    buses_vuelta = res_vuelta.get("buses", []) if (res_vuelta and res_vuelta.get("success")) else []
+
+    if not buses_ida and not buses_vuelta:
+        return f"No hay buses del recorrido {linea} aproximándose a tu esquina {corner} en este momento."
+
+    parts = [f"Para la {linea} en {corner}:"]
+
+    if buses_ida:
+        first_ida = buses_ida[0]
+        arr_ida = _format_single_bus_arrival(first_ida)
+        parts.append(f"de ida en el paradero {code_ida} {arr_ida};")
+    else:
+        parts.append(f"de ida en el paradero {code_ida} no vienen buses;")
+
+    if code_vuelta and code_vuelta != code_ida:
+        if buses_vuelta:
+            first_v = buses_vuelta[0]
+            arr_v = _format_single_bus_arrival(first_v)
+            parts.append(f"y en la vereda del frente (paradero {code_vuelta}) {arr_v}.")
+        else:
+            parts.append(f"y en la vereda del frente (paradero {code_vuelta}) no vienen buses próximos.")
+    elif not buses_ida:
+        return f"No veo micros de la {linea} en camino al paradero {code_ida}."
+    else:
+        parts[-1] = parts[-1].rstrip(";") + "."
+
+    return " ".join(parts)
 
 
 def format_travel_summary_speech(
