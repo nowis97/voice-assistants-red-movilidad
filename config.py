@@ -153,6 +153,8 @@ def resolve_user(name_query: Optional[str] = None, person_id: Optional[str] = No
     # 2. Por Nombre / Alias
     if name_query:
         clean = name_query.strip().lower()
+        if clean in users:
+            return users[clean]
         for u in users.values():
             aliases = [a.lower() for a in u.get("aliases", [])]
             if clean in aliases or clean == u.get("name", "").lower():
@@ -276,6 +278,95 @@ def save_preference(
 
     desc = " y ".join(updates) if updates else "preferencias"
     return True, f"Guardé {desc} para {target_user['name']}.", target_user
+
+
+def get_user_stops(
+    user_key_or_name: Optional[str] = None,
+    person_id: Optional[str] = None,
+    name_query: Optional[str] = None
+) -> Dict[str, Any]:
+    """
+    Retorna la configuración de paraderos de ida y vuelta para el usuario resuelto.
+    Mantiene compatibilidad con esquemas antiguos que solo tienen 'stop'.
+    """
+    query = user_key_or_name or name_query
+    user = resolve_user(name_query=query, person_id=person_id)
+
+    if "stops" in user and isinstance(user["stops"], dict):
+        ida_data = user["stops"].get("ida", {})
+        vuelta_data = user["stops"].get("vuelta", {})
+        intersection = user["stops"].get("intersection", "")
+
+        return {
+            "ida": {
+                "code": ida_data.get("code") or user.get("stop", DEFAULT_STOP_CODE),
+                "name": ida_data.get("name", "paradero de ida"),
+                "direction": ida_data.get("direction", "de ida")
+            },
+            "vuelta": {
+                "code": vuelta_data.get("code") or user.get("stop", DEFAULT_STOP_CODE),
+                "name": vuelta_data.get("name", "paradero de vuelta"),
+                "direction": vuelta_data.get("direction", "de regreso")
+            },
+            "intersection": intersection
+        }
+
+    # Fallback para perfil tradicional de 1 solo paradero
+    default_code = user.get("stop", DEFAULT_STOP_CODE)
+    return {
+        "ida": {"code": default_code, "name": "paradero habitual", "direction": "de ida"},
+        "vuelta": {"code": default_code, "name": "paradero habitual", "direction": "de regreso"},
+        "intersection": ""
+    }
+
+
+def save_stops_pair(
+    target_key: str,
+    stop_ida: Dict[str, Any],
+    stop_vuelta: Optional[Dict[str, Any]] = None,
+    intersection: Optional[str] = None
+) -> Tuple[bool, str, Dict[str, Any]]:
+    """
+    Guarda el par de paraderos (ida y vuelta) asociados a la esquina del usuario.
+    """
+    users = load_users()
+    if target_key not in users:
+        clean_target = target_key.strip().lower()
+        found_key = None
+        for k, u in users.items():
+            aliases = [a.lower() for a in u.get("aliases", [])]
+            if clean_target in aliases or clean_target == u.get("name", "").lower():
+                found_key = k
+                break
+        target_key = found_key or "user1"
+
+    target_user = users[target_key]
+
+    ida_code = clean_alphanumeric_code(stop_ida.get("code", ""))
+    ida_name = stop_ida.get("name", "")
+
+    vuelta_code = clean_alphanumeric_code(stop_vuelta.get("code", "")) if stop_vuelta else ida_code
+    vuelta_name = stop_vuelta.get("name", "") if stop_vuelta else ida_name
+
+    target_user["stops"] = {
+        "ida": {"code": ida_code, "name": ida_name, "direction": "de ida"},
+        "vuelta": {"code": vuelta_code, "name": vuelta_name, "direction": "de vuelta"},
+        "intersection": intersection or ida_name
+    }
+    # Mantener sincronizado el fallback legacy
+    target_user["stop"] = ida_code
+
+    save_users(users)
+    global USERS_BIP
+    USERS_BIP = users
+
+    user_name = target_user.get("name", "Usuario")
+    if ida_code != vuelta_code:
+        msg = f"Guardé tu esquina {intersection or ida_name} para {user_name}: paradero de ida {ida_code} y de vuelta {vuelta_code}."
+    else:
+        msg = f"Guardé el paradero {ida_code} para {user_name}."
+
+    return True, msg, target_user
 
 
 def list_configured_users() -> List[Dict[str, Any]]:
