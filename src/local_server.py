@@ -3,7 +3,7 @@ from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import JSONResponse
 import logging
 
-from src.lambda_function import sb
+from src.lambda_function import lambda_handler
 from src import red_service
 import config
 
@@ -16,39 +16,21 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Skill instance
-skill = sb.create()
 
-
-@app.get("/")
-def root():
-    return {
-        "status": "online",
-        "service": "Alexa Red Movilidad Skill Backend",
-        "endpoints": {
-            "alexa_webhook": "/alexa",
-            "test_saldo": "/api/saldo",
-            "test_micro": "/api/micro",
-            "test_gps": "/api/gps/401"
-        }
-    }
-
-
-@app.get("/alexa")
-def alexa_status():
-    return {"status": "ok", "message": "Alexa Red Movilidad webhook endpoint activo"}
-
-
-@app.post("/alexa")
+@app.api_route("/", methods=["GET", "POST"])
+@app.api_route("/alexa", methods=["GET", "POST"])
 async def alexa_endpoint(request: Request):
     """
-    Endpoint Webhook HTTPS para conectar Alexa Developer Console directamente
-    usando túneles como Cloudflare Tunnel o ngrok (HTTPS).
+    Endpoint Webhook para Alexa: responde tanto en / como en /alexa,
+    soportando GET (healthcheck) y POST (solicitudes de Alexa).
     """
+    if request.method == "GET":
+        return {"status": "ok", "message": "Alexa Red Movilidad webhook endpoint activo"}
+
     try:
         req_json = await request.json()
         logger.info("Solicitud Alexa recibida")
-        response_dict = skill.invoke(req_json, None)
+        response_dict = lambda_handler(req_json, None)
         return JSONResponse(content=response_dict)
     except Exception as e:
         logger.error(f"Error procesando solicitud de Alexa: {e}", exc_info=True)
@@ -74,4 +56,4 @@ def api_gps(recorrido: str):
 
 
 if __name__ == "__main__":
-    uvicorn.run("src.local_server:app", host="0.0.0.0", port=config.PORT, reload=True)
+    uvicorn.run(app, host="0.0.0.0", port=config.PORT)
