@@ -31,19 +31,40 @@ jobs:
           ASK_REFRESH_TOKEN: ${{ secrets.ASK_REFRESH_TOKEN }}
           ASK_VENDOR_ID: ${{ secrets.ASK_VENDOR_ID }}
         run: |
-          mkdir -p ~/.ask
-          cat << EOF > ~/.ask/cli_config
-          {
-            "profiles": {
-              "default": {
-                "token": {
-                  "refresh_token": "$ASK_REFRESH_TOKEN"
-                },
-                "vendor_id": "$ASK_VENDOR_ID"
-              }
+          node -e '
+          const fs = require("fs");
+          const os = require("os");
+          const path = require("path");
+          const execSync = require("child_process").execSync;
+
+          const npmRoot = execSync("npm root -g").toString().trim();
+          const LWAClient = require(path.join(npmRoot, "ask-cli/dist/lib/clients/lwa-auth-code-client"));
+          const client = new LWAClient({});
+
+          const refreshToken = process.env.ASK_REFRESH_TOKEN;
+          const vendorId = process.env.ASK_VENDOR_ID;
+
+          client.refreshToken({ refresh_token: refreshToken }, (err, token) => {
+            if (err) {
+              console.error("Failed to refresh token:", err);
+              process.exit(1);
             }
-          }
-          EOF
+            const askDir = path.join(os.homedir(), ".ask");
+            if (!fs.existsSync(askDir)) {
+              fs.mkdirSync(askDir, { recursive: true });
+            }
+            const config = {
+              profiles: {
+                default: {
+                  token: token,
+                  vendor_id: vendorId
+                }
+              }
+            };
+            fs.writeFileSync(path.join(askDir, "cli_config"), JSON.stringify(config, null, 2));
+            console.log("Configured ~/.ask/cli_config successfully with fresh access token.");
+          });
+          '
 
       - name: Deploy Skill Metadata (Models & Manifest)
         run: |
