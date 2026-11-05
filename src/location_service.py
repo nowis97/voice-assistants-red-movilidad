@@ -4,6 +4,7 @@ import math
 import logging
 import requests
 import urllib.parse
+import re
 from typing import Optional, Tuple, Dict, Any
 
 logger = logging.getLogger(__name__)
@@ -182,3 +183,166 @@ def resolve_stop_for_request(handler_input: Any, fallback_stop: str = "PA345") -
             return (nearest["code"], nearest["name"], nearest["distance_meters"])
 
     return (fallback_stop, "paradero habitual", None)
+
+
+def clean_intersection_name(raw_name: str) -> str:
+    """
+    Transforma un nombre técnico GTFS de paradero en una frase hablada natural.
+    Ejemplos:
+      'PC186-Avenida Apoquindo / Esq. El Bosque Norte' -> 'Avenida Apoquindo con El Bosque Norte'
+      'PD184-Av. Grecia / Esq. Salvador' -> 'Avenida Grecia con Salvador'
+      'PA345-Parada 4 / (M) Universidad De Chile' -> 'Parada 4 con Metro Universidad De Chile'
+    """
+    if not raw_name:
+        return ""
+
+    # 1. Eliminar prefijo de código (ej: 'PC186-', 'PA345 - ')
+    s = re.sub(r"^[A-Z0-9]+[-\s]+", "", raw_name.strip())
+
+    # 2. Expandir indicador de Metro
+    s = re.sub(r"\(M\)", "Metro", s)
+
+    # 3. Expandir abreviaturas comunes de vías
+    s = re.sub(r"\bAv\.\s*", "Avenida ", s, flags=re.IGNORECASE)
+    s = re.sub(r"\bPque\.\s*", "Parque ", s, flags=re.IGNORECASE)
+    s = re.sub(r"\bPje\.\s*", "Pasaje ", s, flags=re.IGNORECASE)
+
+    # 4. Normalizar intersección (/ Esq. o / por 'con')
+    s = re.sub(r"/\s*(?:Esq\.?|esq\.?)?\s*", " con ", s)
+
+    # 5. Limpieza de espacios redundantes
+    s = re.sub(r"\s+", " ", s).strip()
+    return s
+
+
+def find_opposing_stop(stop_code: str, max_meters: int = 250) -> Optional[Dict[str, Any]]:
+    """
+    Encuentra el paradero enfrentado en la vereda contraria para un código dado,
+    buscando en stops.db por proximidad geográfica (<250m) en el mismo eje vial.
+    """
+    if not os.path.exists(DB_PATH) or not stop_code:
+        return None
+
+    clean_code = stop_code.strip().upper()
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        c = conn.cursor()
+
+        # Obtener datos del paradero origen
+        c.execute("SELECT code, name, lat, lon FROM stops WHERE code = ?", (clean_code,))
+        origin = c.fetchone()
+        if not origin:
+            conn.close()
+            return None
+
+        _, origin_name, o_lat, o_lon = origin
+
+        # Extraer eje principal (antes de 'con' o '/')
+        cleaned_origin = clean_intersection_name(origin_name)
+        main_axis = cleaned_origin.split(" con ")[0].strip() if " con " in cleaned_origin else cleaned_origin
+
+        # Buscar paraderos cercanos dentro de un radio de ~250m (~0.0025 grados)
+        c.execute("""
+            SELECT code, name, lat, lon
+            FROM stops
+            WHERE code != ?
+              AND lat BETWEEN ? AND ?
+              AND lon BETWEEN ? AND ?
+        """, (clean_code, o_lat - 0.0025, o_lat + 0.0025, o_lon - 0.0025, o_lon + 0.0025))
+
+        candidates = c.fetchall()
+        conn.close()
+
+        best_stop = None
+        min_dist = float("inf")
+
+        for c_code, c_name, c_lat, c_lon in candidates:
+            # Calcular distancia Haversine
+            dlat = math.radians(c_lat - o_lat)
+            dlon = math.radians(c_lon - o_lon)
+            a = (math.sin(dlat / 2) ** 2 +
+                 math.cos(math.radians(o_lat)) * math.cos(math.radians(c_lat)) *
+                 math.sin(dlon / 2) ** 2)
+            dist_m = int(6371000 * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a)))
+
+            if dist_m > max_meters:
+                continue
+
+            cleaned_cand = clean_intersection_name(c_name)
+            # Priorizar paraderos que compartan el mismo eje vial
+            axis_match = (main_axis.lower() in cleaned_cand.lower() or
+                          ("metro" in cleaned_origin.lower() and "metro" in cleaned_cand.lower()))
+
+            if axis_match and dist_m < min_dist:
+                min_dist = dist_m
+                best_stop = {
+                    "code": c_code,
+                    "name": cleaned_cand,
+                    "latitude": c_lat,
+                    "longitude": c_lon,
+                    "distance_meters": dist_m
+                }
+
+        return best_stop
+    except Exception as e:
+        logger.error(f"Error buscando paradero opuesto a {stop_code}: {e}", exc_info=True)
+        return None
+
+
+def find_stops_by_intersection(street1: str, street2: str) -> Tuple[Optional[Dict[str, Any]], Optional[Dict[str, Any]]]:
+    """
+    Busca los dos paraderos enfrentados en una esquina dada por dos calles.
+    Retorna (stop_ida, stop_vuelta).
+    """
+    if not os.path.exists(DB_PATH) or not street1:
+        return None, None
+
+    s1 = street1.strip()
+    s2 = street2.strip() if street2 else ""
+
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        c = conn.cursor()
+
+        query = "SELECT code, name, lat, lon FROM stops WHERE name LIKE ?"
+        params = [f"%{s1}%"]
+        if s2:
+            query += " AND name LIKE ?"
+            params.append(f"%{s2}%")
+
+        c.execute(query, tuple(params))
+        rows = c.fetchall()
+        conn.close()
+
+        if not rows:
+            return None, None
+
+        # Paradero principal de referencia
+        p1_code, p1_name, p1_lat, p1_lon = rows[0]
+        stop_ida = {
+            "code": p1_code,
+            "name": clean_intersection_name(p1_name),
+            "latitude": p1_lat,
+            "longitude": p1_lon,
+            "distance_meters": 0
+        }
+
+        # Si encontramos dos directamente en la consulta
+        if len(rows) >= 2:
+            p2_code, p2_name, p2_lat, p2_lon = rows[1]
+            stop_vuelta = {
+                "code": p2_code,
+                "name": clean_intersection_name(p2_name),
+                "latitude": p2_lat,
+                "longitude": p2_lon,
+                "distance_meters": 0
+            }
+            return stop_ida, stop_vuelta
+
+        # Si solo encontramos uno con ambos nombres, buscar su opuesto en la vereda del frente
+        opposing = find_opposing_stop(p1_code)
+        return stop_ida, opposing
+    except Exception as e:
+        logger.error(f"Error buscando paraderos por esquina {street1} con {street2}: {e}", exc_info=True)
+        return None, None
+
