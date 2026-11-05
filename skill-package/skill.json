@@ -44,16 +44,12 @@
           "uri": "https://nowis.tail7d0b63.ts.net/alexa",
           "sslCertificateType": "Trusted"
         },
-        "interfaces": [
-          {
-            "type": "GEOLOCATION"
-          }
-        ]
+        "interfaces": []
       }
     },
     "permissions": [
       {
-        "name": "read::alexa:device:all:address"
+        "name": "alexa::devices:all:address:full:read"
       },
       {
         "name": "alexa::devices:all:geolocation:read"
