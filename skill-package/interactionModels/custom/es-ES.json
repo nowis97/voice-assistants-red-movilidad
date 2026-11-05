@@ -52,6 +52,84 @@
           ]
         },
         {
+          "name": "GuardarTarjetaIntent",
+          "slots": [
+            {
+              "name": "numeroTarjeta",
+              "type": "AMAZON.SearchQuery"
+            },
+            {
+              "name": "nombre",
+              "type": "AMAZON.FirstName"
+            }
+          ],
+          "samples": [
+            "guarda mi tarjeta {numeroTarjeta}",
+            "guarda mi tarjeta bip {numeroTarjeta}",
+            "guarda mi bip {numeroTarjeta}",
+            "guarda la tarjeta {numeroTarjeta}",
+            "guarda la tarjeta de {nombre} {numeroTarjeta}",
+            "guarda la tarjeta de {nombre} como {numeroTarjeta}",
+            "guarda la bip de {nombre} {numeroTarjeta}",
+            "registra mi tarjeta {numeroTarjeta}",
+            "registra la tarjeta de {nombre} {numeroTarjeta}",
+            "mi tarjeta es {numeroTarjeta}",
+            "mi tarjeta bip es {numeroTarjeta}",
+            "mi bip es {numeroTarjeta}",
+            "la tarjeta de {nombre} es {numeroTarjeta}",
+            "la bip de {nombre} es {numeroTarjeta}",
+            "cambia mi tarjeta a {numeroTarjeta}",
+            "asocia la tarjeta {numeroTarjeta} a {nombre}",
+            "configura mi tarjeta bip {numeroTarjeta}",
+            "{numeroTarjeta}"
+          ]
+        },
+        {
+          "name": "ListarTarjetasIntent",
+          "slots": [],
+          "samples": [
+            "qué tarjetas tengo guardadas",
+            "cuáles son mis tarjetas",
+            "qué tarjetas hay registradas",
+            "qué tarjetas bip tengo",
+            "mostrar mis tarjetas",
+            "cuál es mi tarjeta guardada",
+            "lista mis tarjetas",
+            "ver mis tarjetas bip",
+            "qué tarjetas tengo"
+          ]
+        },
+        {
+          "name": "GuardarPreferenciaIntent",
+          "slots": [
+            {
+              "name": "linea",
+              "type": "AMAZON.SearchQuery"
+            },
+            {
+              "name": "paradero",
+              "type": "AMAZON.SearchQuery"
+            },
+            {
+              "name": "nombre",
+              "type": "AMAZON.FirstName"
+            }
+          ],
+          "samples": [
+            "guarda mi micro favorita {linea}",
+            "guarda mi recorrido favorito {linea}",
+            "mi micro favorita es la {linea}",
+            "mi micro es la {linea}",
+            "guarda mi paradero {paradero}",
+            "mi paradero favorito es {paradero}",
+            "mi paradero es {paradero}",
+            "guarda el paradero {paradero} para {nombre}",
+            "guarda la micro {linea} para {nombre}",
+            "guarda el recorrido {linea} para {nombre}",
+            "guarda paradero {paradero} y micro {linea}"
+          ]
+        },
+        {
           "name": "PrediccionMicroIntent",
           "slots": [
             {

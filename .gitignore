@@ -27,6 +27,7 @@ wheels/
 # Secrets & Environment
 .env
 local.json
+users.json
 
 # IDEs & OS
 .vscode/

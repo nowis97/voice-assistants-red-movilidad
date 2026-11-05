@@ -6,6 +6,9 @@ import logging
 from src.alexa_handlers import (
     LaunchRequestHandler,
     SaldoBipIntentHandler,
+    GuardarTarjetaIntentHandler,
+    ListarTarjetasIntentHandler,
+    GuardarPreferenciaIntentHandler,
     PrediccionMicroIntentHandler,
     ResumenViajeIntentHandler,
     BusesEnRutaIntentHandler,
@@ -34,6 +37,9 @@ sb.add_global_request_interceptor(LoggingRequestInterceptor())
 # Registrar Request Handlers
 sb.add_request_handler(LaunchRequestHandler())
 sb.add_request_handler(SaldoBipIntentHandler())
+sb.add_request_handler(GuardarTarjetaIntentHandler())
+sb.add_request_handler(ListarTarjetasIntentHandler())
+sb.add_request_handler(GuardarPreferenciaIntentHandler())
 sb.add_request_handler(PrediccionMicroIntentHandler())
 sb.add_request_handler(ResumenViajeIntentHandler())
 sb.add_request_handler(BusesEnRutaIntentHandler())

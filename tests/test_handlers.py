@@ -112,3 +112,47 @@ def test_resumen_viaje_multiuser():
     output_speech = resp["response"]["outputSpeech"]["ssml"]
     assert "Simón" in output_speech
     assert "saldo" in output_speech.lower() or "micro" in output_speech.lower()
+
+
+def test_guardar_tarjeta_voice():
+    """Prueba que el usuario pueda registrar o actualizar su tarjeta Bip por voz."""
+    req = create_mock_envelope("IntentRequest", "GuardarTarjetaIntent", {"numeroTarjeta": "21547896"})
+    resp = lambda_handler(req, None)
+    output_speech = resp["response"]["outputSpeech"]["ssml"]
+    assert "Guardé la tarjeta 21547896" in output_speech
+
+
+def test_guardar_tarjeta_multiuser_by_name():
+    """Prueba registrar una tarjeta asignándola a otro nombre por voz."""
+    req = create_mock_envelope(
+        "IntentRequest",
+        "GuardarTarjetaIntent",
+        {"numeroTarjeta": "99887766", "nombre": "María"}
+    )
+    resp = lambda_handler(req, None)
+    output_speech = resp["response"]["outputSpeech"]["ssml"]
+    assert "María" in output_speech
+    assert "99887766" in output_speech
+
+
+def test_listar_tarjetas_voice():
+    """Prueba listar las tarjetas configuradas."""
+    req = create_mock_envelope("IntentRequest", "ListarTarjetasIntent")
+    resp = lambda_handler(req, None)
+    output_speech = resp["response"]["outputSpeech"]["ssml"]
+    assert "tarjetas" in output_speech.lower()
+    assert "Simón" in output_speech or "María" in output_speech
+
+
+def test_guardar_preferencia_voice():
+    """Prueba guardar paradero o recorrido preferido por voz."""
+    req = create_mock_envelope(
+        "IntentRequest",
+        "GuardarPreferenciaIntent",
+        {"paradero": "PA345", "linea": "401"}
+    )
+    resp = lambda_handler(req, None)
+    output_speech = resp["response"]["outputSpeech"]["ssml"]
+    assert "PA345" in output_speech
+    assert "401" in output_speech
+
