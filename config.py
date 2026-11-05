@@ -15,7 +15,7 @@ USERS_FILE = os.path.join(BASE_DIR, "users.json")
 
 DEFAULT_BIP_NUMBER = os.getenv("DEFAULT_BIP_NUMBER", "12345678")
 DEFAULT_STOP_CODE = os.getenv("DEFAULT_STOP_CODE", "PA345").strip().upper()
-DEFAULT_SERVICE = os.getenv("DEFAULT_SERVICE", "401").strip().upper()
+DEFAULT_SERVICE = os.getenv("DEFAULT_SERVICE", "513").strip().upper()
 ALEXA_SKILL_ID = os.getenv("ALEXA_SKILL_ID", "")
 PORT = int(os.getenv("PORT", "8000"))
 
