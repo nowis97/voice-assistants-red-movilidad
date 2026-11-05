@@ -156,3 +156,17 @@ def test_guardar_preferencia_voice():
     assert "PA345" in output_speech
     assert "401" in output_speech
 
+
+def test_guardar_preferencia_alphanumeric_spoken_voice():
+    """Prueba que frases habladas como 'be 02' y 'pe a tres cuatro cinco' se guarden alfanuméricamente como B02 y PA345."""
+    req = create_mock_envelope(
+        "IntentRequest",
+        "GuardarPreferenciaIntent",
+        {"paradero": "pe a 345", "linea": "be 02"}
+    )
+    resp = lambda_handler(req, None)
+    output_speech = resp["response"]["outputSpeech"]["ssml"]
+    assert "PA345" in output_speech
+    assert "B02" in output_speech
+
+

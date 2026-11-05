@@ -240,11 +240,11 @@ class PrediccionMicroIntentHandler(AbstractRequestHandler):
         person_id = _extract_person_id(handler_input)
         user_info = config.resolve_user(person_id=person_id)
 
-        linea = linea_slot.value if linea_slot and linea_slot.value else user_info["service"]
+        linea = config.clean_alphanumeric_code(linea_slot.value) if linea_slot and linea_slot.value else user_info["service"]
 
         distance_to_stop = None
         if paradero_slot and paradero_slot.value:
-            paradero = paradero_slot.value.replace(" ", "").replace(".", "").upper()
+            paradero = config.clean_alphanumeric_code(paradero_slot.value)
         else:
             paradero, _, distance_to_stop = location_service.resolve_stop_for_request(
                 handler_input, fallback_stop=user_info["stop"]
@@ -303,7 +303,7 @@ class BusesEnRutaIntentHandler(AbstractRequestHandler):
     def handle(self, handler_input: HandlerInput) -> Response:
         slots = handler_input.request_envelope.request.intent.slots
         linea_slot = slots.get("linea") if slots else None
-        linea = linea_slot.value if linea_slot and linea_slot.value else config.DEFAULT_SERVICE
+        linea = config.clean_alphanumeric_code(linea_slot.value) if linea_slot and linea_slot.value else config.DEFAULT_SERVICE
 
         buses = red_service.get_buses_on_route(linea)
         total = len(buses)

@@ -38,6 +38,31 @@ SPANISH_WORDS = {
     "setenta": "70", "ochenta": "80", "noventa": "90", "cien": "100"
 }
 
+LETTER_WORDS = {
+    "pe a": "PA", "pe ce": "PC", "pe i": "PI", "pe de": "PD", "pe be": "PB",
+    "pe efe": "PF", "pe ge": "PG", "pe hache": "PH", "pe jota": "PJ", "pe e": "PE",
+    "be": "B", "ce": "C", "de": "D", "efe": "F", "ge": "G", "hache": "H", "jota": "J",
+    "i latina": "I"
+}
+
+DIGIT_WORDS = {
+    "cero": "0", "uno": "1", "un": "1", "dos": "2", "tres": "3",
+    "cuatro": "4", "cinco": "5", "seis": "6", "siete": "7", "ocho": "8", "nueve": "9"
+}
+
+
+def clean_alphanumeric_code(raw: Optional[str]) -> str:
+    """Normaliza códigos alfanuméricos de paraderos y recorridos (ej: 'pe a tres cuatro cinco' -> 'PA345', 'be 02' -> 'B02', '506 e' -> '506E')."""
+    if not raw:
+        return ""
+    t = str(raw).lower().strip()
+    for phrase, rep in LETTER_WORDS.items():
+        t = re.sub(r"\b" + phrase + r"\b", rep, t)
+    for w, d in DIGIT_WORDS.items():
+        t = re.sub(r"\b" + w + r"\b", d, t)
+    t = re.sub(r"[\s\.\-]+", "", t)
+    return t.upper()
+
 
 def clean_card_number(raw: Optional[str]) -> str:
     """Extrae dígitos de una entrada de voz (admite números y palabras en español)."""
@@ -236,12 +261,12 @@ def save_preference(
 
     updates = []
     if stop:
-        clean_stop = stop.replace(" ", "").replace(".", "").upper()
+        clean_stop = clean_alphanumeric_code(stop)
         target_user["stop"] = clean_stop
         updates.append(f"paradero {clean_stop}")
 
     if service:
-        clean_service = service.replace(" ", "").upper()
+        clean_service = clean_alphanumeric_code(service)
         target_user["service"] = clean_service
         updates.append(f"recorrido {clean_service}")
 
