@@ -63,7 +63,7 @@ def test_launch_request():
     req = create_mock_envelope("LaunchRequest")
     resp = lambda_handler(req, None)
     output_speech = resp["response"]["outputSpeech"]["ssml"]
-    assert "Bienvenido a Mi Micro" in output_speech
+    assert "Bienvenido a Red Micro" in output_speech
 
 
 def test_saldo_bip_intent():

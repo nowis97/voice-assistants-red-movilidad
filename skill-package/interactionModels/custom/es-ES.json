@@ -1,7 +1,7 @@
 {
   "interactionModel": {
     "languageModel": {
-      "invocationName": "mi micro",
+      "invocationName": "red micro",
       "intents": [
         {
           "name": "AMAZON.CancelIntent",

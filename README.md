@@ -19,12 +19,13 @@ Skill personalizada para **Amazon Alexa** que permite consultar en tiempo real e
 
 | Lo que dices | Lo que responde Alexa |
 | :--- | :--- |
-| *«Alexa, abre Mi Micro»* | Saludo y menú de ayuda de la skill. |
-| *«Alexa, pregúntale a Mi Micro cuánto saldo tengo»* | *"Tu tarjeta Bip tiene un saldo de 3.450 pesos."* |
-| *«Alexa, pregúntale a Mi Micro cuánto le falta a la 401»* | *"La micro 401 le faltan entre 4 y 7 minutos, viene a 1.200 metros."* |
-| *«Alexa, pregúntale a Mi Micro cuándo viene la micro»* | Consulta tu paradero y recorrido habitual por defecto. |
-| *«Alexa, pregúntale a Mi Micro si alcanzo a salir»* | *"La 401 viene a 800 metros, le faltan unos 5 minutos. Tu saldo Bip es de 2.800 pesos."* |
-| *«Alexa, pregúntale a Mi Micro cuántos buses hay en la 401»* | *"Hay 34 buses del recorrido 401 circulando en este momento en Santiago."* |
+| *«Alexa, abre Red Micro»* | Saludo y menú de ayuda de la skill. |
+| *«Alexa, pregúntale a Red Micro cuánto saldo tengo»* | *"Tu tarjeta Bip tiene un saldo de 3.450 pesos."* |
+| *«Alexa, pregúntale a Red Micro cuánto le falta a la 401»* | *"La micro 401 le faltan entre 4 y 7 minutos, viene a 1.200 metros."* |
+| *«Alexa, pregúntale a Red Micro cuándo viene la micro»* | Consulta tu paradero y recorrido habitual por defecto. |
+| *«Alexa, pregúntale a Red Micro si alcanzo a salir»* | *"La 401 viene a 800 metros, le faltan unos 5 minutos. Tu saldo Bip es de 2.800 pesos."* |
+| *«Alexa, pregúntale a Red Micro cuántos buses hay en la 401»* | *"Hay 34 buses del recorrido 401 circulando en este momento en Santiago."* |
+| *«Alexa, dile a Red Micro que guarde mi tarjeta 12345678»* | Configuración de tarjeta Bip por voz al instante. |
 
 ---
 
@@ -82,7 +83,7 @@ python -m pytest tests/ -v
 
 1. Entra a [Alexa Developer Console](https://developer.amazon.com/alexa/console/ask).
 2. Haz clic en **Create Skill**:
-   * **Skill name:** `Mi Micro`
+   * **Skill name:** `Red Micro`
    * **Primary locale:** `Spanish (ES)` o `Spanish (MX / US)`.
    * **Model:** `Custom`
    * **Hosting:** `Provision your own` (AWS Lambda o Webhook).

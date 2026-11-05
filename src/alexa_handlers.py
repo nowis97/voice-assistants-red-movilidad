@@ -26,7 +26,7 @@ def _extract_person_id(handler_input: HandlerInput) -> str | None:
 
 
 class LaunchRequestHandler(AbstractRequestHandler):
-    """Handler para cuando el usuario dice: 'Alexa, abre Mi Micro'."""
+    """Handler para cuando el usuario dice: 'Alexa, abre Red Micro'."""
 
     def can_handle(self, handler_input: HandlerInput) -> bool:
         return is_request_type("LaunchRequest")(handler_input)
@@ -36,7 +36,7 @@ class LaunchRequestHandler(AbstractRequestHandler):
         user = config.resolve_user(person_id=person_id)
         name_greeting = f", {user['name']}" if user.get("name") else ""
         speak_output = (
-            f"Bienvenido a Mi Micro{name_greeting}. Puedes preguntarme cuánto saldo le queda a tu Bip, "
+            f"Bienvenido a Red Micro{name_greeting}. Puedes preguntarme cuánto saldo le queda a tu Bip, "
             "dónde viene la micro, si alcanzas a salir, o decir: guarda mi tarjeta Bip. ¿Qué te gustaría saber?"
         )
         reprompt_text = "¿Deseas consultar tu saldo, ver cuándo viene tu micro o guardar una tarjeta?"
@@ -45,7 +45,7 @@ class LaunchRequestHandler(AbstractRequestHandler):
             handler_input.response_builder
             .speak(speak_output)
             .ask(reprompt_text)
-            .set_card(SimpleCard("Mi Micro - Red Movilidad", "Consulta saldo Bip!, predictivo y configuración por voz"))
+            .set_card(SimpleCard("Red Micro - Red Movilidad", "Consulta saldo Bip!, predictivo y configuración por voz"))
             .response
         )
 
