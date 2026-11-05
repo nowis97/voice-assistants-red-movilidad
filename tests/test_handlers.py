@@ -1,6 +1,14 @@
 import sys
 import os
 import pytest
+from unittest.mock import patch
+from ask_sdk_model import RequestEnvelope, Context, Application
+from ask_sdk_model.interfaces.system import SystemState as System
+from ask_sdk_model.intent import Intent
+from ask_sdk_model.intent_request import IntentRequest
+from ask_sdk_model.slot import Slot
+from ask_sdk_core.handler_input import HandlerInput
+from src.alexa_handlers import PrediccionMicroIntentHandler
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
@@ -63,7 +71,7 @@ def test_launch_request():
     req = create_mock_envelope("LaunchRequest")
     resp = lambda_handler(req, None)
     output_speech = resp["response"]["outputSpeech"]["ssml"]
-    assert "Bienvenido a Red Micro" in output_speech
+    assert "Bienvenido a Red Movilidad" in output_speech
 
 
 def test_saldo_bip_intent():
@@ -168,5 +176,115 @@ def test_guardar_preferencia_alphanumeric_spoken_voice():
     output_speech = resp["response"]["outputSpeech"]["ssml"]
     assert "PA345" in output_speech
     assert "B02" in output_speech
+
+
+@patch("src.red_service.format_dual_prediction_speech")
+@patch("config.get_user_stops")
+def test_prediccion_micro_intent_dual_stops(mock_stops, mock_speech):
+    mock_stops.return_value = {
+        "ida": {"code": "PD184", "name": "Avenida Grecia con Salvador"},
+        "vuelta": {"code": "PD200", "name": "Avenida Grecia con Salvador"},
+        "intersection": "Avenida Grecia con Salvador"
+    }
+    mock_speech.return_value = "Para la 513 en Avenida Grecia con Salvador..."
+
+    req_obj = IntentRequest(
+        request_id="r1",
+        timestamp="2026-11-05T00:00:00Z",
+        intent=Intent(
+            name="PrediccionMicroIntent",
+            slots={"linea": Slot(name="linea", value="513")}
+        )
+    )
+    envelope = RequestEnvelope(request=req_obj, context=Context(system=System(application=Application("app1"))))
+    handler = PrediccionMicroIntentHandler()
+    assert handler.can_handle(HandlerInput(request_envelope=envelope))
+    resp = handler.handle(HandlerInput(request_envelope=envelope))
+    assert "Para la 513 en Avenida Grecia con Salvador..." in resp.output_speech.ssml
+
+    # Probar también invocación vía lambda_handler
+    req = create_mock_envelope("IntentRequest", "PrediccionMicroIntent", {"linea": "513"})
+    resp_lambda = lambda_handler(req, None)
+    output_speech = resp_lambda["response"]["outputSpeech"]["ssml"]
+    assert "Para la 513 en Avenida Grecia con Salvador..." in output_speech
+
+
+@patch("src.red_service.format_dual_prediction_speech")
+@patch("config.get_user_stops")
+def test_prediccion_micro_intent_with_sentido(mock_stops, mock_speech):
+    mock_stops.return_value = {
+        "ida": {"code": "PD184", "name": "Avenida Grecia con Salvador"},
+        "vuelta": {"code": "PD200", "name": "Avenida Grecia con Salvador"},
+        "intersection": "Avenida Grecia con Salvador"
+    }
+    mock_speech.return_value = "La 513 de vuelta viene a 200 metros..."
+
+    req = create_mock_envelope(
+        "IntentRequest",
+        "PrediccionMicroIntent",
+        {"linea": "513", "sentido": "vuelta"}
+    )
+    resp = lambda_handler(req, None)
+    output_speech = resp["response"]["outputSpeech"]["ssml"]
+    assert "La 513 de vuelta viene a 200 metros..." in output_speech
+    mock_speech.assert_called_with(
+        linea="513",
+        stop_ida={"code": "PD184", "name": "Avenida Grecia con Salvador"},
+        stop_vuelta={"code": "PD200", "name": "Avenida Grecia con Salvador"},
+        intersection="Avenida Grecia con Salvador",
+        sentido_query="vuelta"
+    )
+
+
+@patch("config.save_stops_pair")
+@patch("src.location_service.find_stops_by_intersection")
+def test_guardar_preferencia_intersection(mock_find, mock_save):
+    mock_find.return_value = (
+        {"code": "PD184", "name": "Avenida Grecia con Salvador"},
+        {"code": "PD200", "name": "Avenida Grecia con Salvador"}
+    )
+    mock_save.return_value = (
+        True,
+        "Guardé tu esquina Avenida Grecia con Salvador para Simón: paradero de ida PD184 y de vuelta PD200.",
+        {"name": "Simón"}
+    )
+
+    req = create_mock_envelope(
+        "IntentRequest",
+        "GuardarPreferenciaIntent",
+        {"calleUno": "Grecia", "calleDos": "Salvador"}
+    )
+    resp = lambda_handler(req, None)
+    output_speech = resp["response"]["outputSpeech"]["ssml"]
+    assert "PD184" in output_speech
+    assert "PD200" in output_speech
+    mock_find.assert_called_once_with("Grecia", "Salvador")
+    mock_save.assert_called_once()
+
+
+@patch("config.save_stops_pair")
+@patch("src.location_service.find_opposing_stop")
+def test_guardar_preferencia_single_stop_opposing_discovery(mock_opposing, mock_save):
+    mock_opposing.return_value = {
+        "code": "PC186",
+        "name": "Avenida Apoquindo con El Bosque Norte"
+    }
+    mock_save.return_value = (
+        True,
+        "Guardé tu esquina Avenida Apoquindo con El Bosque Norte para Simón: paradero de ida PC185 y de vuelta PC186.",
+        {"name": "Simón"}
+    )
+
+    req = create_mock_envelope(
+        "IntentRequest",
+        "GuardarPreferenciaIntent",
+        {"paradero": "PC185"}
+    )
+    resp = lambda_handler(req, None)
+    output_speech = resp["response"]["outputSpeech"]["ssml"]
+    assert "PC185" in output_speech
+    assert "PC186" in output_speech
+    mock_opposing.assert_called_once_with("PC185")
+
 
 

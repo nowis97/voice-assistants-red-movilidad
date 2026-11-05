@@ -1,7 +1,7 @@
 {
   "interactionModel": {
     "languageModel": {
-      "invocationName": "red micro",
+      "invocationName": "red movilidad",
       "intents": [
         {
           "name": "AMAZON.CancelIntent",
@@ -113,9 +113,30 @@
             {
               "name": "nombre",
               "type": "AMAZON.FirstName"
+            },
+            {
+              "name": "calleUno",
+              "type": "AMAZON.StreetName"
+            },
+            {
+              "name": "calleDos",
+              "type": "AMAZON.StreetName"
+            },
+            {
+              "name": "esquina",
+              "type": "AMAZON.StreetName"
             }
           ],
           "samples": [
+            "mi esquina es {calleUno} con {calleDos}",
+            "guarda mi esquina {calleUno} con {calleDos}",
+            "mi esquina es {esquina}",
+            "guarda mi esquina {esquina}",
+            "guarda la esquina {calleUno} con {calleDos}",
+            "guarda la esquina {calleUno} y {calleDos}",
+            "mi esquina favorita es {calleUno} con {calleDos}",
+            "guarda la esquina {calleUno} con {calleDos} para {nombre}",
+            "guarda mi esquina {calleUno} con {calleDos} y mi micro {linea}",
             "guarda mi micro favorita {linea}",
             "guarda mi recorrido favorito {linea}",
             "mi micro favorita es la {linea}",
@@ -141,6 +162,10 @@
             {
               "name": "paradero",
               "type": "PARADERO_BUS"
+            },
+            {
+              "name": "sentido",
+              "type": "SENTIDO_VIAJE"
             }
           ],
           "samples": [
@@ -162,7 +187,20 @@
             "cuándo llega la {linea} a {paradero}",
             "cuándo pasa la {linea} por {paradero}",
             "qué micros vienen en el paradero {paradero}",
-            "qué buses vienen al paradero {paradero}"
+            "qué buses vienen al paradero {paradero}",
+            "dónde viene la {linea} {sentido}",
+            "dónde viene la {linea} de {sentido}",
+            "cuándo viene la {linea} {sentido}",
+            "cuándo viene la {linea} de {sentido}",
+            "cuánto le falta a la {linea} {sentido}",
+            "cuánto le falta a la {linea} de {sentido}",
+            "a qué hora pasa la {linea} {sentido}",
+            "a qué hora pasa la {linea} de {sentido}",
+            "cuándo llega la {linea} {sentido}",
+            "cuándo llega la {linea} de {sentido}",
+            "dónde está la {linea} {sentido}",
+            "dónde viene la micro {linea} {sentido}",
+            "cuánto le falta a la micro {linea} {sentido}"
           ]
         },
         {
@@ -256,6 +294,53 @@
             { "name": { "value": "PE10", "synonyms": ["pe 10", "pe e 10"] } },
             { "name": { "value": "PH1", "synonyms": ["ph 1", "pe hache 1"] } },
             { "name": { "value": "PA456", "synonyms": ["pa 456", "pe a 456"] } }
+          ]
+        },
+        {
+          "name": "SENTIDO_VIAJE",
+          "values": [
+            {
+              "name": {
+                "value": "ida",
+                "synonyms": ["de ida", "hacia el centro", "al centro", "sentido ida"]
+              }
+            },
+            {
+              "name": {
+                "value": "vuelta",
+                "synonyms": ["de vuelta", "hacia la casa", "a la casa", "sentido vuelta"]
+              }
+            },
+            {
+              "name": {
+                "value": "regreso",
+                "synonyms": ["de regreso", "retorno", "de retorno"]
+              }
+            },
+            {
+              "name": {
+                "value": "centro",
+                "synonyms": ["hacia el centro", "hacia centro"]
+              }
+            },
+            {
+              "name": {
+                "value": "casa",
+                "synonyms": ["hacia mi casa", "para la casa", "a la casa"]
+              }
+            },
+            {
+              "name": {
+                "value": "trabajo",
+                "synonyms": ["hacia el trabajo", "a la pega", "hacia la pega"]
+              }
+            },
+            {
+              "name": {
+                "value": "peñalolén",
+                "synonyms": ["hacia peñalolén", "a peñalolén", "penalolen"]
+              }
+            }
           ]
         }
       ]

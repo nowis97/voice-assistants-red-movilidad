@@ -1,4 +1,5 @@
 import logging
+import re
 from ask_sdk_core.dispatch_components import (
     AbstractRequestHandler,
     AbstractExceptionHandler,
@@ -26,7 +27,7 @@ def _extract_person_id(handler_input: HandlerInput) -> str | None:
 
 
 class LaunchRequestHandler(AbstractRequestHandler):
-    """Handler para cuando el usuario dice: 'Alexa, abre Red Micro'."""
+    """Handler para cuando el usuario dice: 'Alexa, abre Red Movilidad'."""
 
     def can_handle(self, handler_input: HandlerInput) -> bool:
         return is_request_type("LaunchRequest")(handler_input)
@@ -36,16 +37,16 @@ class LaunchRequestHandler(AbstractRequestHandler):
         user = config.resolve_user(person_id=person_id)
         name_greeting = f", {user['name']}" if user.get("name") else ""
         speak_output = (
-            f"Bienvenido a Red Micro{name_greeting}. Puedes preguntarme cuánto saldo le queda a tu Bip, "
-            "dónde viene la micro, si alcanzas a salir, o decir: guarda mi tarjeta Bip. ¿Qué te gustaría saber?"
+            f"Bienvenido a Red Movilidad{name_greeting}. Puedes preguntarme cuánto saldo le queda a tu Bip, "
+            "dónde viene tu micro de ida o vuelta, o decir: mi esquina es Grecia con Salvador. ¿Qué te gustaría saber?"
         )
-        reprompt_text = "¿Deseas consultar tu saldo, ver cuándo viene tu micro o guardar una tarjeta?"
+        reprompt_text = "¿Deseas consultar tu saldo, ver cuándo viene tu micro o configurar tu esquina?"
 
         return (
             handler_input.response_builder
             .speak(speak_output)
             .ask(reprompt_text)
-            .set_card(SimpleCard("Red Micro - Red Movilidad", "Consulta saldo Bip!, predictivo y configuración por voz"))
+            .set_card(SimpleCard("Red Movilidad", "Consulta saldo Bip!, predictivo y paraderos de ida y vuelta"))
             .response
         )
 
@@ -182,7 +183,7 @@ class ListarTarjetasIntentHandler(AbstractRequestHandler):
 
 
 class GuardarPreferenciaIntentHandler(AbstractRequestHandler):
-    """Handler para guardar paradero o micro favorita: 'Guarda mi micro 401', 'Mi paradero es PA345'."""
+    """Handler para guardar paradero, micro favorita o esquina/intersección: 'Guarda mi micro 401', 'Mi paradero es PA345', 'Mi esquina es Grecia con Salvador'."""
 
     def can_handle(self, handler_input: HandlerInput) -> bool:
         return is_intent_name("GuardarPreferenciaIntent")(handler_input)
@@ -192,35 +193,126 @@ class GuardarPreferenciaIntentHandler(AbstractRequestHandler):
         linea_slot = slots.get("linea")
         paradero_slot = slots.get("paradero")
         nombre_slot = slots.get("nombre")
+        esquina_slot = slots.get("esquina")
+        calle_uno_slot = slots.get("calleUno")
+        calle_dos_slot = slots.get("calleDos")
 
         linea = linea_slot.value if linea_slot and linea_slot.value else None
         paradero = paradero_slot.value if paradero_slot and paradero_slot.value else None
         nombre = nombre_slot.value if nombre_slot and nombre_slot.value else None
+        esquina = esquina_slot.value if esquina_slot and esquina_slot.value else None
+        calle_uno = calle_uno_slot.value if calle_uno_slot and calle_uno_slot.value else None
+        calle_dos = calle_dos_slot.value if calle_dos_slot and calle_dos_slot.value else None
         person_id = _extract_person_id(handler_input)
+        target_key = nombre or (person_id or "user1")
 
-        if not linea and not paradero:
-            speak_output = (
-                "Para guardar tus preferencias puedes decir: "
-                "guarda mi paradero PA tres cuatro cinco, o guarda mi micro cuatrocientos uno."
+        # 1. Caso Esquina / Dos calles
+        calle1, calle2 = None, None
+        if calle_uno or calle_dos:
+            calle1 = calle_uno or ""
+            calle2 = calle_dos or ""
+        elif esquina:
+            norm_esq = esquina.strip()
+            if " con " in norm_esq.lower():
+                parts = re.split(r"\s+con\s+", norm_esq, maxsplit=1, flags=re.IGNORECASE)
+                calle1, calle2 = parts[0], parts[1]
+            elif " y " in norm_esq.lower():
+                parts = re.split(r"\s+y\s+", norm_esq, maxsplit=1, flags=re.IGNORECASE)
+                calle1, calle2 = parts[0], parts[1]
+            elif "/" in norm_esq:
+                parts = norm_esq.split("/", 1)
+                calle1, calle2 = parts[0], parts[1]
+            else:
+                calle1, calle2 = norm_esq, ""
+
+        if calle1:
+            stop_ida, stop_vuelta = location_service.find_stops_by_intersection(calle1, calle2)
+            if not stop_ida:
+                speak_output = f"No encontré paraderos para la esquina de {calle1} con {calle2}. Por favor verifica las calles e intenta de nuevo."
+                return (
+                    handler_input.response_builder
+                    .speak(speak_output)
+                    .set_card(SimpleCard("Esquina No Encontrada", speak_output))
+                    .response
+                )
+
+            intersection_name = f"{calle1} con {calle2}".strip() if calle2 else calle1
+            success, msg, user_info = config.save_stops_pair(
+                target_key=target_key,
+                stop_ida=stop_ida,
+                stop_vuelta=stop_vuelta,
+                intersection=intersection_name
             )
+            if linea:
+                clean_linea = config.clean_alphanumeric_code(linea)
+                config.save_preference(service=clean_linea, name_query=nombre, person_id=person_id)
+                msg += f" Y guardé tu micro {clean_linea}."
+
             return (
                 handler_input.response_builder
-                .speak(speak_output)
-                .ask("¿Qué paradero o micro deseas guardar?")
+                .speak(msg)
+                .set_card(SimpleCard("Preferencias Guardadas", msg))
                 .response
             )
 
-        success, msg, user_info = config.save_preference(
-            stop=paradero,
-            service=linea,
-            name_query=nombre,
-            person_id=person_id
-        )
+        # 2. Caso Paradero específico dictado
+        if paradero:
+            clean_paradero = config.clean_alphanumeric_code(paradero)
+            opposing = location_service.find_opposing_stop(clean_paradero)
 
+            if opposing:
+                stop_ida = {"code": clean_paradero, "name": opposing.get("name", clean_paradero)}
+                success, msg, user_info = config.save_stops_pair(
+                    target_key=target_key,
+                    stop_ida=stop_ida,
+                    stop_vuelta=opposing,
+                    intersection=opposing.get("name")
+                )
+            else:
+                stop_ida = {"code": clean_paradero, "name": clean_paradero}
+                success, msg, user_info = config.save_stops_pair(
+                    target_key=target_key,
+                    stop_ida=stop_ida,
+                    stop_vuelta=None,
+                    intersection=clean_paradero
+                )
+
+            if linea:
+                clean_linea = config.clean_alphanumeric_code(linea)
+                config.save_preference(service=clean_linea, name_query=nombre, person_id=person_id)
+                msg += f" Y guardé tu recorrido {clean_linea}."
+
+            return (
+                handler_input.response_builder
+                .speak(msg)
+                .set_card(SimpleCard("Preferencias Guardadas", msg))
+                .response
+            )
+
+        # 3. Caso Solo micro/línea
+        if linea:
+            clean_linea = config.clean_alphanumeric_code(linea)
+            success, msg, user_info = config.save_preference(
+                service=clean_linea,
+                name_query=nombre,
+                person_id=person_id
+            )
+            return (
+                handler_input.response_builder
+                .speak(msg)
+                .set_card(SimpleCard("Preferencias Guardadas", msg))
+                .response
+            )
+
+        # 4. Caso nada dictado
+        speak_output = (
+            "Para guardar tus preferencias puedes decir: "
+            "mi esquina es Grecia con Salvador, guarda mi paradero PA tres cuatro cinco, o guarda mi micro cuatrocientos uno."
+        )
         return (
             handler_input.response_builder
-            .speak(msg)
-            .set_card(SimpleCard("Preferencias Guardadas", msg))
+            .speak(speak_output)
+            .ask("¿Qué esquina, paradero o micro deseas guardar?")
             .response
         )
 
@@ -236,21 +328,45 @@ class PrediccionMicroIntentHandler(AbstractRequestHandler):
 
         linea_slot = slots.get("linea")
         paradero_slot = slots.get("paradero")
+        sentido_slot = slots.get("sentido")
 
         person_id = _extract_person_id(handler_input)
         user_info = config.resolve_user(person_id=person_id)
 
         linea = config.clean_alphanumeric_code(linea_slot.value) if linea_slot and linea_slot.value else user_info["service"]
 
-        distance_to_stop = None
         if paradero_slot and paradero_slot.value:
             paradero = config.clean_alphanumeric_code(paradero_slot.value)
+            speak_output = red_service.format_prediction_speech(paradero, linea)
         else:
-            paradero, _, distance_to_stop = location_service.resolve_stop_for_request(
-                handler_input, fallback_stop=user_info["stop"]
-            )
-
-        speak_output = red_service.format_prediction_speech(paradero, linea, distance_to_stop=distance_to_stop)
+            coords_info = location_service.get_coordinates_from_request(handler_input)
+            if coords_info:
+                lat, lon, source = coords_info
+                nearest = location_service.find_nearest_stop(lat, lon)
+                if nearest:
+                    speak_output = red_service.format_prediction_speech(
+                        nearest["code"], linea, distance_to_stop=nearest["distance_meters"]
+                    )
+                else:
+                    user_stops = config.get_user_stops(person_id=person_id)
+                    sentido_val = sentido_slot.value if sentido_slot and sentido_slot.value else None
+                    speak_output = red_service.format_dual_prediction_speech(
+                        linea=linea,
+                        stop_ida=user_stops["ida"],
+                        stop_vuelta=user_stops.get("vuelta"),
+                        intersection=user_stops.get("intersection"),
+                        sentido_query=sentido_val
+                    )
+            else:
+                user_stops = config.get_user_stops(person_id=person_id)
+                sentido_val = sentido_slot.value if sentido_slot and sentido_slot.value else None
+                speak_output = red_service.format_dual_prediction_speech(
+                    linea=linea,
+                    stop_ida=user_stops["ida"],
+                    stop_vuelta=user_stops.get("vuelta"),
+                    intersection=user_stops.get("intersection"),
+                    sentido_query=sentido_val
+                )
 
         return (
             handler_input.response_builder
@@ -329,8 +445,8 @@ class HelpIntentHandler(AbstractRequestHandler):
 
     def handle(self, handler_input: HandlerInput) -> Response:
         speak_output = (
-            "Puedes decir: cuánto saldo le queda a mi Bip, cuánto le falta a la 401, "
-            "o preguntar: ¿alcanzo a salir? También puedes decir: guarda mi tarjeta Bip doce treinta y cuatro cincuenta y seis setenta y ocho."
+            "Puedes decir: cuánto saldo le queda a mi Bip, cuánto le falta a la 513 de ida o de vuelta, "
+            "preguntar: ¿alcanzo a salir?, o configurar tu esquina diciendo: mi esquina es Grecia con Salvador."
         )
         return (
             handler_input.response_builder
