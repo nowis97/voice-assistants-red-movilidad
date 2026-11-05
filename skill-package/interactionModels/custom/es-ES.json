@@ -24,7 +24,7 @@
           "slots": [
             {
               "name": "numeroTarjeta",
-              "type": "AMAZON.SearchQuery"
+              "type": "AMAZON.NUMBER"
             },
             {
               "name": "nombre",
@@ -56,7 +56,7 @@
           "slots": [
             {
               "name": "numeroTarjeta",
-              "type": "AMAZON.SearchQuery"
+              "type": "AMAZON.NUMBER"
             },
             {
               "name": "nombre",
@@ -104,11 +104,11 @@
           "slots": [
             {
               "name": "linea",
-              "type": "AMAZON.SearchQuery"
+              "type": "LINEA_BUS"
             },
             {
               "name": "paradero",
-              "type": "AMAZON.SearchQuery"
+              "type": "PARADERO_BUS"
             },
             {
               "name": "nombre",
@@ -134,11 +134,11 @@
           "slots": [
             {
               "name": "linea",
-              "type": "AMAZON.SearchQuery"
+              "type": "LINEA_BUS"
             },
             {
               "name": "paradero",
-              "type": "AMAZON.SearchQuery"
+              "type": "PARADERO_BUS"
             }
           ],
           "samples": [
@@ -189,7 +189,7 @@
           "slots": [
             {
               "name": "linea",
-              "type": "AMAZON.SearchQuery"
+              "type": "LINEA_BUS"
             }
           ],
           "samples": [
@@ -200,7 +200,35 @@
           ]
         }
       ],
-      "types": []
+      "types": [
+        {
+          "name": "LINEA_BUS",
+          "values": [
+            { "name": { "value": "401" } },
+            { "name": { "value": "506" } },
+            { "name": { "value": "405" } },
+            { "name": { "value": "421" } },
+            { "name": { "value": "404" } },
+            { "name": { "value": "210" } },
+            { "name": { "value": "106" } },
+            { "name": { "value": "B02" } },
+            { "name": { "value": "I09" } },
+            { "name": { "value": "D11" } },
+            { "name": { "value": "C02" } }
+          ]
+        },
+        {
+          "name": "PARADERO_BUS",
+          "values": [
+            { "name": { "value": "PA345" } },
+            { "name": { "value": "PC186" } },
+            { "name": { "value": "PA1" } },
+            { "name": { "value": "PA370" } },
+            { "name": { "value": "PC123" } },
+            { "name": { "value": "PA456" } }
+          ]
+        }
+      ]
     }
   }
 }
