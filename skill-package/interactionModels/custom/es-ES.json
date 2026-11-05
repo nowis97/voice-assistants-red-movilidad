@@ -5,32 +5,15 @@
       "intents": [
         {
           "name": "AMAZON.CancelIntent",
-          "samples": [
-            "cancelar",
-            "cancela",
-            "olvídalo",
-            "para"
-          ]
+          "samples": ["cancelar", "cancela", "olvídalo", "para"]
         },
         {
           "name": "AMAZON.HelpIntent",
-          "samples": [
-            "ayuda",
-            "qué puedes hacer",
-            "cómo funciona",
-            "qué comandos tienes"
-          ]
+          "samples": ["ayuda", "qué puedes hacer", "cómo funciona", "qué comandos tienes"]
         },
         {
           "name": "AMAZON.StopIntent",
-          "samples": [
-            "detener",
-            "adiós",
-            "chao",
-            "para ya",
-            "salir",
-            "terminar"
-          ]
+          "samples": ["detener", "adiós", "chao", "para ya", "salir", "terminar"]
         },
         {
           "name": "AMAZON.NavigateHomeIntent",
@@ -42,6 +25,10 @@
             {
               "name": "numeroTarjeta",
               "type": "AMAZON.SearchQuery"
+            },
+            {
+              "name": "nombre",
+              "type": "AMAZON.FirstName"
             }
           ],
           "samples": [
@@ -53,6 +40,12 @@
             "cuál es mi saldo",
             "dime el saldo",
             "consulta el saldo",
+            "cuánto saldo tiene {nombre}",
+            "saldo de {nombre}",
+            "saldo de la bip de {nombre}",
+            "cuánto saldo tiene la bip de {nombre}",
+            "cuánto le queda a la tarjeta de {nombre}",
+            "cuánto le queda a {nombre}",
             "cuánto saldo tiene la tarjeta {numeroTarjeta}",
             "saldo de la bip {numeroTarjeta}",
             "cuánto tiene la tarjeta {numeroTarjeta}"
@@ -75,6 +68,9 @@
             "dónde viene la micro",
             "cuánto le falta a la micro",
             "a qué hora pasa la micro",
+            "cuánto le falta a la micro más cercana",
+            "cuándo viene la micro aquí",
+            "dónde viene la micro de aquí",
             "cuánto le falta a la {linea}",
             "dónde viene la {linea}",
             "cuándo pasa la {linea}",
@@ -91,7 +87,12 @@
         },
         {
           "name": "ResumenViajeIntent",
-          "slots": [],
+          "slots": [
+            {
+              "name": "nombre",
+              "type": "AMAZON.FirstName"
+            }
+          ],
           "samples": [
             "alcanzo a salir",
             "debo salir ya",
@@ -99,7 +100,10 @@
             "resumen de viaje",
             "cuándo tengo que salir",
             "puedo salir ahora",
-            "alcanzo a tomar la micro"
+            "alcanzo a tomar la micro",
+            "alcanza {nombre} a salir",
+            "alcanza {nombre} a tomar la micro",
+            "resumen de viaje de {nombre}"
           ]
         },
         {

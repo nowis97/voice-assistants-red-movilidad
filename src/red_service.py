@@ -143,8 +143,8 @@ def get_buses_on_route(route: str) -> List[Dict[str, Any]]:
 # Constructores de lenguaje natural (Texto para Alexa)
 # -------------------------------------------------------------------------
 
-def format_balance_speech(bip_code: Optional[str] = None) -> str:
-    """Construye la frase hablada para el saldo de la tarjeta Bip!."""
+def format_balance_speech(bip_code: Optional[str] = None, user_name: Optional[str] = None) -> str:
+    """Construye la frase hablada para el saldo de la tarjeta Bip!, personalizable por usuario."""
     res = get_bip_balance(bip_code)
     if not res["success"]:
         return res.get("error", "No pude consultar el saldo de tu tarjeta en este momento.")
@@ -157,10 +157,15 @@ def format_balance_speech(bip_code: Optional[str] = None) -> str:
     else:
         alerta = ""
 
-    return f"Tu tarjeta Bip tiene un saldo de {balance} pesos.{alerta}"
+    saludo = f"{user_name}, tu" if user_name else "Tu"
+    return f"{saludo} tarjeta Bip tiene un saldo de {balance} pesos.{alerta}"
 
 
-def format_prediction_speech(stop_code: Optional[str] = None, service: Optional[str] = None) -> str:
+def format_prediction_speech(
+    stop_code: Optional[str] = None,
+    service: Optional[str] = None,
+    distance_to_stop: Optional[int] = None
+) -> str:
     """Construye la frase hablada para el tiempo de llegada de la micro."""
     res = get_stop_predictions(stop_code, service)
     if not res["success"]:
@@ -170,10 +175,14 @@ def format_prediction_speech(stop_code: Optional[str] = None, service: Optional[
     stop_name = res["stop_name"]
     target = res.get("target_service")
 
+    prefijo = ""
+    if distance_to_stop is not None:
+        prefijo = f"Para tu paradero más cercano a {distance_to_stop} metros: "
+
     if not buses:
         if target:
-            return f"No hay buses del recorrido {target} dirigiéndose al paradero {res['stop_code']} en este momento."
-        return f"No hay buses en camino para el paradero {res['stop_code']} en este momento."
+            return f"{prefijo}No hay buses del recorrido {target} dirigiéndose al paradero {res['stop_code']} en este momento."
+        return f"{prefijo}No hay buses en camino para el paradero {res['stop_code']} en este momento."
 
     # Tomar el bus más próximo
     first = buses[0]
@@ -191,7 +200,7 @@ def format_prediction_speech(stop_code: Optional[str] = None, service: Optional[
 
     distancia_texto = f"a {meters} metros" if meters > 0 else "en el paradero"
 
-    speech = f"La micro {linea} {tiempo_texto}, viene {distancia_texto}."
+    speech = f"{prefijo}La micro {linea} {tiempo_texto}, viene {distancia_texto}."
 
     # Si hay un segundo bus de la misma línea o en general
     if len(buses) > 1 and target:
@@ -204,27 +213,42 @@ def format_prediction_speech(stop_code: Optional[str] = None, service: Optional[
     return speech
 
 
-def format_travel_summary_speech() -> str:
+def format_travel_summary_speech(
+    user_name: Optional[str] = None,
+    card_number: Optional[str] = None,
+    stop_code: Optional[str] = None,
+    service: Optional[str] = None,
+    distance_to_stop: Optional[int] = None
+) -> str:
     """
     Comando combinado: "¿Alcanzo a salir?"
-    Consulta en simultáneo el saldo y la micro habitual.
+    Consulta en simultáneo el saldo de la persona y su micro más próxima.
     """
-    bal_res = get_bip_balance()
-    pred_res = get_stop_predictions(config.DEFAULT_STOP_CODE, config.DEFAULT_SERVICE)
+    target_stop = stop_code or config.DEFAULT_STOP_CODE
+    target_service = service or config.DEFAULT_SERVICE
+    target_card = card_number or config.DEFAULT_BIP_NUMBER
+
+    bal_res = get_bip_balance(target_card)
+    pred_res = get_stop_predictions(target_stop, target_service)
 
     parts = []
 
+    # Saludo personalizado si se reconoce al usuario
+    if user_name:
+        parts.append(f"{user_name},")
+
     # Micro
+    loc_detail = f" a {distance_to_stop} metros" if distance_to_stop else ""
     if pred_res["success"] and pred_res["buses"]:
         first = pred_res["buses"][0]
         m = first["meters"]
         t = first["max_time"]
         if t <= 2:
-            parts.append(f"La {config.DEFAULT_SERVICE} ya está llegando a {m} metros.")
+            parts.append(f"la {target_service} para tu paradero{loc_detail} ya está llegando a {m} metros.")
         else:
-            parts.append(f"La {config.DEFAULT_SERVICE} viene a {m} metros, le faltan unos {t} minutos.")
+            parts.append(f"la {target_service} para tu paradero{loc_detail} viene a {m} metros, le faltan unos {t} minutos.")
     else:
-        parts.append(f"No veo buses de la {config.DEFAULT_SERVICE} próximos a tu paradero habitual.")
+        parts.append(f"no veo buses de la {target_service} próximos a tu paradero{loc_detail}.")
 
     # Saldo
     if bal_res["success"]:

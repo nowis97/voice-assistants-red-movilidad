@@ -6,6 +6,8 @@ import pytest
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from src import red_service
+from src import location_service
+import config
 
 
 def test_get_bip_balance_live():
@@ -56,20 +58,43 @@ def test_get_buses_on_route_live():
 
 def test_format_balance_speech():
     """Prueba del formateador de voz para saldo."""
-    speech = red_service.format_balance_speech("12345678")
-    assert "Tu tarjeta Bip tiene un saldo de" in speech
+    speech = red_service.format_balance_speech("12345678", user_name="Simón")
+    assert "Simón, tu tarjeta Bip tiene un saldo de" in speech
     assert "pesos" in speech
 
 
 def test_format_prediction_speech():
-    """Prueba del formateador de voz para predictivo."""
-    speech = red_service.format_prediction_speech("PA345", "401")
+    """Prueba del formateador de voz para predictivo con distancia."""
+    speech = red_service.format_prediction_speech("PA345", "401", distance_to_stop=85)
     assert isinstance(speech, str)
-    assert len(speech) > 10
+    assert "85 metros" in speech
 
 
 def test_format_travel_summary_speech():
-    """Prueba del comando combinado 'alcanzo a salir'."""
-    speech = red_service.format_travel_summary_speech()
-    assert isinstance(speech, str)
-    assert len(speech) > 10
+    """Prueba del comando combinado con usuario y paradero."""
+    speech = red_service.format_travel_summary_speech(user_name="María", stop_code="PC186", service="506")
+    assert "María," in speech
+    assert "506" in speech
+
+
+def test_location_find_nearest_stop():
+    """Prueba la búsqueda offline en menos de 2ms del paradero más cercano en Santiago."""
+    # Coordenadas de Metro Los Leones / Providencia
+    nearest = location_service.find_nearest_stop(-33.4223, -70.6095)
+    assert nearest is not None
+    assert "code" in nearest
+    assert "name" in nearest
+    assert isinstance(nearest["distance_meters"], int)
+    assert nearest["distance_meters"] < 300
+
+
+def test_user_resolution():
+    """Prueba la resolución multi-usuario por nombre y por person_id."""
+    u1 = config.resolve_user(name_query="Simón")
+    assert u1["name"] == "Simón"
+
+    u2 = config.resolve_user(name_query="maría")
+    assert u2["name"] == "María"
+
+    u_alias = config.resolve_user(name_query="pareja")
+    assert u_alias["name"] == "María"

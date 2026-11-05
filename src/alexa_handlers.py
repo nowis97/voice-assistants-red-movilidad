@@ -10,8 +10,19 @@ from ask_sdk_model.ui import SimpleCard
 
 import config
 from src import red_service
+from src import location_service
 
 logger = logging.getLogger(__name__)
+
+
+def _extract_person_id(handler_input: HandlerInput) -> str | None:
+    """Extrae el person_id de Alexa Voice ID si el usuario tiene perfil de voz."""
+    try:
+        system = handler_input.request_envelope.context.system
+        person = getattr(system, "person", None)
+        return person.person_id if person else None
+    except Exception:
+        return None
 
 
 class LaunchRequestHandler(AbstractRequestHandler):
@@ -37,17 +48,28 @@ class LaunchRequestHandler(AbstractRequestHandler):
 
 
 class SaldoBipIntentHandler(AbstractRequestHandler):
-    """Handler para: '¿Cuánto saldo tengo?', 'Saldo de la Bip', etc."""
+    """Handler para: '¿Cuánto saldo tengo?', 'Saldo de la Bip', 'Saldo de María', etc."""
 
     def can_handle(self, handler_input: HandlerInput) -> bool:
         return is_intent_name("SaldoBipIntent")(handler_input)
 
     def handle(self, handler_input: HandlerInput) -> Response:
-        slots = handler_input.request_envelope.request.intent.slots
-        card_slot = slots.get("numeroTarjeta") if slots else None
-        custom_card = card_slot.value if card_slot and card_slot.value else None
+        slots = handler_input.request_envelope.request.intent.slots or {}
+        card_slot = slots.get("numeroTarjeta")
+        nombre_slot = slots.get("nombre")
 
-        speak_output = red_service.format_balance_speech(custom_card)
+        custom_card = card_slot.value if card_slot and card_slot.value else None
+        custom_nombre = nombre_slot.value if nombre_slot and nombre_slot.value else None
+
+        person_id = _extract_person_id(handler_input)
+
+        if custom_card:
+            # Tarjeta dictada explícitamente por números
+            speak_output = red_service.format_balance_speech(custom_card)
+        else:
+            # Resolver usuario por Voice ID o por nombre dictado ("de María", "de Simón")
+            user_info = config.resolve_user(name_query=custom_nombre, person_id=person_id)
+            speak_output = red_service.format_balance_speech(user_info["card"], user_name=user_info["name"])
 
         return (
             handler_input.response_builder
@@ -64,18 +86,27 @@ class PrediccionMicroIntentHandler(AbstractRequestHandler):
         return is_intent_name("PrediccionMicroIntent")(handler_input)
 
     def handle(self, handler_input: HandlerInput) -> Response:
-        slots = handler_input.request_envelope.request.intent.slots
+        slots = handler_input.request_envelope.request.intent.slots or {}
 
-        linea_slot = slots.get("linea") if slots else None
-        paradero_slot = slots.get("paradero") if slots else None
+        linea_slot = slots.get("linea")
+        paradero_slot = slots.get("paradero")
 
-        linea = linea_slot.value if linea_slot and linea_slot.value else config.DEFAULT_SERVICE
-        paradero = paradero_slot.value if paradero_slot and paradero_slot.value else config.DEFAULT_STOP_CODE
+        person_id = _extract_person_id(handler_input)
+        user_info = config.resolve_user(person_id=person_id)
 
-        # Limpiar paradero (Alexa puede escuchar "p a 3 4 5" con espacios)
-        paradero_limpio = paradero.replace(" ", "").replace(".", "").upper()
+        linea = linea_slot.value if linea_slot and linea_slot.value else user_info["service"]
 
-        speak_output = red_service.format_prediction_speech(paradero_limpio, linea)
+        distance_to_stop = None
+        if paradero_slot and paradero_slot.value:
+            # El usuario dictó un código de paradero específico
+            paradero = paradero_slot.value.replace(" ", "").replace(".", "").upper()
+        else:
+            # Detección inteligente por ubicación de Alexa (GPS móvil o Dirección del Echo)
+            paradero, _, distance_to_stop = location_service.resolve_stop_for_request(
+                handler_input, fallback_stop=user_info["stop"]
+            )
+
+        speak_output = red_service.format_prediction_speech(paradero, linea, distance_to_stop=distance_to_stop)
 
         return (
             handler_input.response_builder
@@ -86,13 +117,31 @@ class PrediccionMicroIntentHandler(AbstractRequestHandler):
 
 
 class ResumenViajeIntentHandler(AbstractRequestHandler):
-    """Handler para: '¿Alcanzo a salir?', 'Estado de mi viaje', etc."""
+    """Handler para: '¿Alcanzo a salir?', 'Estado de mi viaje', 'Alcanza Simón', etc."""
 
     def can_handle(self, handler_input: HandlerInput) -> bool:
         return is_intent_name("ResumenViajeIntent")(handler_input)
 
     def handle(self, handler_input: HandlerInput) -> Response:
-        speak_output = red_service.format_travel_summary_speech()
+        slots = handler_input.request_envelope.request.intent.slots or {}
+        nombre_slot = slots.get("nombre")
+        custom_nombre = nombre_slot.value if nombre_slot and nombre_slot.value else None
+
+        person_id = _extract_person_id(handler_input)
+        user_info = config.resolve_user(name_query=custom_nombre, person_id=person_id)
+
+        # Detectar paradero por ubicación si es posible
+        stop_code, _, distance_to_stop = location_service.resolve_stop_for_request(
+            handler_input, fallback_stop=user_info["stop"]
+        )
+
+        speak_output = red_service.format_travel_summary_speech(
+            user_name=user_info["name"],
+            card_number=user_info["card"],
+            stop_code=stop_code,
+            service=user_info["service"],
+            distance_to_stop=distance_to_stop
+        )
 
         return (
             handler_input.response_builder

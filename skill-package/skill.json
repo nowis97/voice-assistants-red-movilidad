@@ -14,22 +14,35 @@
         }
       },
       "isAvailableWorldwide": true,
-      "testingInstructions": "Configura DEFAULT_BIP_NUMBER y DEFAULT_STOP_CODE en el backend.",
+      "testingInstructions": "Configura USERS_BIP y los permisos de ubicación si deseas detección automática de paradero.",
       "category": "NAVIGATION_AND_TRIP_PLANNER",
       "distributionCountries": []
     },
     "apis": {
       "custom": {
         "endpoint": {
-          "uri": "arn:aws:lambda:us-east-1:000000000000:function:alexa-red-movilidad"
+          "uri": "https://nowis.tail7d0b63.ts.net/alexa",
+          "sslCertificateType": "Trusted"
         },
-        "interfaces": []
+        "interfaces": [
+          {
+            "type": "GEOLOCATION"
+          }
+        ]
       }
     },
+    "permissions": [
+      {
+        "name": "read::alexa:device:all:address"
+      },
+      {
+        "name": "alexa::devices:all:geolocation:read"
+      }
+    ],
     "manifestVersion": "1.0",
     "privacyAndCompliance": {
       "allowsPurchases": false,
-      "usesPersonalInfo": false,
+      "usesPersonalInfo": true,
       "isChildDirected": false,
       "isExportCompliant": true,
       "containsAds": false
