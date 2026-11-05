@@ -1,0 +1,264 @@
+{
+  "interactionModel": {
+    "languageModel": {
+      "invocationName": "red micro",
+      "intents": [
+        {
+          "name": "AMAZON.CancelIntent",
+          "samples": ["cancelar", "cancela", "olvídalo", "para"]
+        },
+        {
+          "name": "AMAZON.HelpIntent",
+          "samples": ["ayuda", "qué puedes hacer", "cómo funciona", "qué comandos tienes"]
+        },
+        {
+          "name": "AMAZON.StopIntent",
+          "samples": ["detener", "adiós", "chao", "para ya", "salir", "terminar"]
+        },
+        {
+          "name": "AMAZON.NavigateHomeIntent",
+          "samples": []
+        },
+        {
+          "name": "SaldoBipIntent",
+          "slots": [
+            {
+              "name": "numeroTarjeta",
+              "type": "AMAZON.NUMBER"
+            },
+            {
+              "name": "nombre",
+              "type": "AMAZON.FirstName"
+            }
+          ],
+          "samples": [
+            "cuánto saldo tengo",
+            "cuánto le queda a mi bip",
+            "saldo de mi tarjeta",
+            "saldo de la tarjeta bip",
+            "cuánto dinero tengo en la tarjeta",
+            "cuál es mi saldo",
+            "dime el saldo",
+            "consulta el saldo",
+            "cuánto saldo tiene {nombre}",
+            "saldo de {nombre}",
+            "saldo de la bip de {nombre}",
+            "cuánto saldo tiene la bip de {nombre}",
+            "cuánto le queda a la tarjeta de {nombre}",
+            "cuánto le queda a {nombre}",
+            "cuánto saldo tiene la tarjeta {numeroTarjeta}",
+            "saldo de la bip {numeroTarjeta}",
+            "cuánto tiene la tarjeta {numeroTarjeta}"
+          ]
+        },
+        {
+          "name": "GuardarTarjetaIntent",
+          "slots": [
+            {
+              "name": "numeroTarjeta",
+              "type": "AMAZON.NUMBER"
+            },
+            {
+              "name": "nombre",
+              "type": "AMAZON.FirstName"
+            }
+          ],
+          "samples": [
+            "guarda mi tarjeta {numeroTarjeta}",
+            "guarda mi tarjeta bip {numeroTarjeta}",
+            "guarda mi bip {numeroTarjeta}",
+            "guarda la tarjeta {numeroTarjeta}",
+            "guarda la tarjeta de {nombre} {numeroTarjeta}",
+            "guarda la tarjeta de {nombre} como {numeroTarjeta}",
+            "guarda la bip de {nombre} {numeroTarjeta}",
+            "registra mi tarjeta {numeroTarjeta}",
+            "registra la tarjeta de {nombre} {numeroTarjeta}",
+            "mi tarjeta es {numeroTarjeta}",
+            "mi tarjeta bip es {numeroTarjeta}",
+            "mi bip es {numeroTarjeta}",
+            "la tarjeta de {nombre} es {numeroTarjeta}",
+            "la bip de {nombre} es {numeroTarjeta}",
+            "cambia mi tarjeta a {numeroTarjeta}",
+            "asocia la tarjeta {numeroTarjeta} a {nombre}",
+            "configura mi tarjeta bip {numeroTarjeta}",
+            "{numeroTarjeta}"
+          ]
+        },
+        {
+          "name": "ListarTarjetasIntent",
+          "slots": [],
+          "samples": [
+            "qué tarjetas tengo guardadas",
+            "cuáles son mis tarjetas",
+            "qué tarjetas hay registradas",
+            "qué tarjetas bip tengo",
+            "mostrar mis tarjetas",
+            "cuál es mi tarjeta guardada",
+            "lista mis tarjetas",
+            "ver mis tarjetas bip",
+            "qué tarjetas tengo"
+          ]
+        },
+        {
+          "name": "GuardarPreferenciaIntent",
+          "slots": [
+            {
+              "name": "linea",
+              "type": "LINEA_BUS"
+            },
+            {
+              "name": "paradero",
+              "type": "PARADERO_BUS"
+            },
+            {
+              "name": "nombre",
+              "type": "AMAZON.FirstName"
+            }
+          ],
+          "samples": [
+            "guarda mi micro favorita {linea}",
+            "guarda mi recorrido favorito {linea}",
+            "mi micro favorita es la {linea}",
+            "mi micro es la {linea}",
+            "guarda mi micro {linea}",
+            "guarda el recorrido {linea}",
+            "guarda mi paradero {paradero}",
+            "mi paradero favorito es {paradero}",
+            "mi paradero es {paradero}",
+            "guarda el paradero {paradero} para {nombre}",
+            "guarda la micro {linea} para {nombre}",
+            "guarda el recorrido {linea} para {nombre}",
+            "guarda paradero {paradero} y micro {linea}"
+          ]
+        },
+        {
+          "name": "PrediccionMicroIntent",
+          "slots": [
+            {
+              "name": "linea",
+              "type": "LINEA_BUS"
+            },
+            {
+              "name": "paradero",
+              "type": "PARADERO_BUS"
+            }
+          ],
+          "samples": [
+            "cuándo viene la micro",
+            "dónde viene la micro",
+            "cuánto le falta a la micro",
+            "a qué hora pasa la micro",
+            "cuánto le falta a la micro más cercana",
+            "cuándo viene la micro aquí",
+            "dónde viene la micro de aquí",
+            "cuánto le falta a la {linea}",
+            "dónde viene la {linea}",
+            "cuándo pasa la {linea}",
+            "a qué hora llega la {linea}",
+            "cuándo llega la micro {linea}",
+            "dónde está la micro {linea}",
+            "cuánto le falta a la {linea} en el paradero {paradero}",
+            "dónde viene la {linea} en {paradero}",
+            "cuándo llega la {linea} a {paradero}",
+            "cuándo pasa la {linea} por {paradero}",
+            "qué micros vienen en el paradero {paradero}",
+            "qué buses vienen al paradero {paradero}"
+          ]
+        },
+        {
+          "name": "ResumenViajeIntent",
+          "slots": [
+            {
+              "name": "nombre",
+              "type": "AMAZON.FirstName"
+            }
+          ],
+          "samples": [
+            "alcanzo a salir",
+            "debo salir ya",
+            "cómo está mi viaje",
+            "resumen de viaje",
+            "cuándo tengo que salir",
+            "puedo salir ahora",
+            "alcanzo a tomar la micro",
+            "alcanza {nombre} a salir",
+            "alcanza {nombre} a tomar la micro",
+            "resumen de viaje de {nombre}"
+          ]
+        },
+        {
+          "name": "BusesEnRutaIntent",
+          "slots": [
+            {
+              "name": "linea",
+              "type": "LINEA_BUS"
+            }
+          ],
+          "samples": [
+            "cuántos buses hay en la {linea}",
+            "cuántas micros hay en la {linea}",
+            "cuántos buses están circulando en la {linea}",
+            "buses activos en el recorrido {linea}"
+          ]
+        }
+      ],
+      "types": [
+        {
+          "name": "LINEA_BUS",
+          "values": [
+            { "name": { "value": "513", "synonyms": ["quinientos trece", "cinco uno tres", "cinco trece", "la quinientos trece"] } },
+            { "name": { "value": "225", "synonyms": ["doscientos veinticinco", "dos dos cinco", "dos veinticinco", "la doscientos veinticinco"] } },
+            { "name": { "value": "D09", "synonyms": ["d 09", "de 09", "d nueve", "de nueve", "de cero nueve", "la d 09", "la d nueve", "de nueve"] } },
+            { "name": { "value": "401", "synonyms": ["cuatro cero uno", "cuatrocientos uno"] } },
+            { "name": { "value": "506", "synonyms": ["cinco cero seis", "quinientos seis"] } },
+            { "name": { "value": "506e", "synonyms": ["506 e", "quinientos seis e", "quinientos seis expresa"] } },
+            { "name": { "value": "401c", "synonyms": ["401 c", "cuatrocientos uno corta"] } },
+            { "name": { "value": "210", "synonyms": ["dos diez", "doscientos diez"] } },
+            { "name": { "value": "210v", "synonyms": ["210 v", "doscientos diez corta"] } },
+            { "name": { "value": "405", "synonyms": ["cuatro cero cinco", "cuatrocientos cinco"] } },
+            { "name": { "value": "421", "synonyms": ["cuatro veintiuno", "cuatrocientos veintiuno"] } },
+            { "name": { "value": "404", "synonyms": ["cuatro cero cuatro", "cuatrocientos cuatro"] } },
+            { "name": { "value": "106", "synonyms": ["uno cero seis", "ciento seis"] } },
+            { "name": { "value": "104", "synonyms": ["uno cero cuatro", "ciento cuatro"] } },
+            { "name": { "value": "301", "synonyms": ["tres cero uno", "trescientos uno"] } },
+            { "name": { "value": "712", "synonyms": ["siete doce", "setecientos doce"] } },
+            { "name": { "value": "B02", "synonyms": ["b 02", "be 02", "b dos", "be dos"] } },
+            { "name": { "value": "B01", "synonyms": ["b 01", "be 01", "b uno"] } },
+            { "name": { "value": "C02", "synonyms": ["c 02", "ce 02", "c dos"] } },
+            { "name": { "value": "C01", "synonyms": ["c 01", "ce 01"] } },
+            { "name": { "value": "D11", "synonyms": ["d 11", "de 11", "d once", "de once"] } },
+            { "name": { "value": "D01", "synonyms": ["d 01", "de 01"] } },
+            { "name": { "value": "E04", "synonyms": ["e 04", "e cuatro"] } },
+            { "name": { "value": "F12", "synonyms": ["f 12", "efe 12", "f doce"] } },
+            { "name": { "value": "G05", "synonyms": ["g 05", "ge 05", "g cinco"] } },
+            { "name": { "value": "H02", "synonyms": ["h 02", "hache 02", "h dos"] } },
+            { "name": { "value": "I09", "synonyms": ["i 09", "i nueve", "i latina cero nueve"] } },
+            { "name": { "value": "I01", "synonyms": ["i 01", "i uno"] } },
+            { "name": { "value": "J10", "synonyms": ["j 10", "jota 10", "j diez"] } },
+            { "name": { "value": "J01", "synonyms": ["j 01", "jota 01"] } }
+          ]
+        },
+        {
+          "name": "PARADERO_BUS",
+          "values": [
+            { "name": { "value": "PA345", "synonyms": ["pa 345", "pe a 345", "pe a tres cuatro cinco"] } },
+            { "name": { "value": "PC186", "synonyms": ["pc 186", "pe ce 186", "pe ce uno ocho seis"] } },
+            { "name": { "value": "PI1813", "synonyms": ["pi 1813", "pe i 1813", "pe i mil ochocientos trece"] } },
+            { "name": { "value": "PI201", "synonyms": ["pi 201", "pe i 201"] } },
+            { "name": { "value": "PA1", "synonyms": ["pa 1", "pe a 1", "pe a uno"] } },
+            { "name": { "value": "PA370", "synonyms": ["pa 370", "pe a 370"] } },
+            { "name": { "value": "PC123", "synonyms": ["pc 123", "pe ce 123"] } },
+            { "name": { "value": "PD100", "synonyms": ["pd 100", "pe de 100", "pe de cien"] } },
+            { "name": { "value": "PB150", "synonyms": ["pb 150", "pe be 150"] } },
+            { "name": { "value": "PG20", "synonyms": ["pg 20", "pe ge 20"] } },
+            { "name": { "value": "PF50", "synonyms": ["pf 50", "pe efe 50"] } },
+            { "name": { "value": "PJ30", "synonyms": ["pj 30", "pe jota 30"] } },
+            { "name": { "value": "PE10", "synonyms": ["pe 10", "pe e 10"] } },
+            { "name": { "value": "PH1", "synonyms": ["ph 1", "pe hache 1"] } },
+            { "name": { "value": "PA456", "synonyms": ["pa 456", "pe a 456"] } }
+          ]
+        }
+      ]
+    }
+  }
+}

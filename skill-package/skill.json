@@ -11,6 +11,26 @@
           ],
           "name": "Red Micro - Red Movilidad",
           "description": "Skill para consultar el saldo en tiempo real de tu tarjeta Bip! y el predictivo de llegada de buses de Red Metropolitana de Movilidad (Santiago de Chile)."
+        },
+        "es-US": {
+          "summary": "Consulta de saldo Bip! y tiempo de llegada de micros de Red Movilidad en Santiago de Chile.",
+          "examplePhrases": [
+            "Alexa, abre red micro",
+            "Alexa, pregúntale a red micro cuánto saldo me queda",
+            "Alexa, pregúntale a red micro cuánto le falta a la 401"
+          ],
+          "name": "Red Micro - Red Movilidad",
+          "description": "Skill para consultar el saldo en tiempo real de tu tarjeta Bip! y el predictivo de llegada de buses de Red Metropolitana de Movilidad (Santiago de Chile)."
+        },
+        "es-MX": {
+          "summary": "Consulta de saldo Bip! y tiempo de llegada de micros de Red Movilidad en Santiago de Chile.",
+          "examplePhrases": [
+            "Alexa, abre red micro",
+            "Alexa, pregúntale a red micro cuánto saldo me queda",
+            "Alexa, pregúntale a red micro cuánto le falta a la 401"
+          ],
+          "name": "Red Micro - Red Movilidad",
+          "description": "Skill para consultar el saldo en tiempo real de tu tarjeta Bip! y el predictivo de llegada de buses de Red Metropolitana de Movilidad (Santiago de Chile)."
         }
       },
       "isAvailableWorldwide": true,
