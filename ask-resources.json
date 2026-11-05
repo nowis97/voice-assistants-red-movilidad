@@ -1,0 +1,11 @@
+{
+  "askcliResourcesVersion": "2020-03-31",
+  "profiles": {
+    "default": {
+      "skillMetadata": {
+        "src": "./skill-package"
+      },
+      "skillId": "amzn1.ask.skill.2aa8d315-fc92-49e2-99e1-63943a4d2aef"
+    }
+  }
+}
