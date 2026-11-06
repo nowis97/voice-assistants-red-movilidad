@@ -238,6 +238,33 @@
             "cuántos buses están circulando en la {linea}",
             "buses activos en el recorrido {linea}"
           ]
+        },
+        {
+          "name": "RouteToDestinationIntent",
+          "slots": [
+            {
+              "name": "Destination",
+              "type": "AMAZON.SearchQuery"
+            },
+            {
+              "name": "Origin",
+              "type": "AMAZON.SearchQuery"
+            }
+          ],
+          "samples": [
+            "qué micros me sirven para ir a {Destination}",
+            "qué micro me sirve para ir a {Destination}",
+            "cómo llego a {Destination}",
+            "cómo me voy a {Destination}",
+            "qué micro tomo para {Destination}",
+            "qué micro tomo para ir a {Destination}",
+            "dime cómo llegar a {Destination}",
+            "dime la ruta para ir a {Destination}",
+            "dime qué micro me sirve a {Destination}",
+            "cuál micro me sirve para ir a {Destination}",
+            "cómo llego desde {Origin} hasta {Destination}",
+            "qué micro me sirve desde {Origin} hasta {Destination}"
+          ]
         }
       ],
       "types": [

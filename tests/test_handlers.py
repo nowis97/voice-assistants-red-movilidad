@@ -287,4 +287,89 @@ def test_guardar_preferencia_single_stop_opposing_discovery(mock_opposing, mock_
     mock_opposing.assert_called_once_with("PC185")
 
 
+def test_route_to_destination_intent_handler():
+    from src.alexa_handlers import RouteToDestinationIntentHandler
+    from ask_sdk_core.handler_input import HandlerInput
+    from ask_sdk_model import RequestEnvelope, IntentRequest, Intent, Slot
+
+    req = IntentRequest(
+        intent=Intent(
+            name="RouteToDestinationIntent",
+            slots={
+                "Destination": Slot(name="Destination", value="Metro Tobalaba")
+            }
+        )
+    )
+    envelope = RequestEnvelope(request=req)
+    handler_input = HandlerInput(request_envelope=envelope)
+
+    handler = RouteToDestinationIntentHandler()
+    assert handler.can_handle(handler_input) is True
+
+    with patch("src.alexa_handlers.geocode_address", return_value=(-33.4179, -70.6016)), \
+         patch("src.alexa_handlers.format_route_speech", return_value="Para ir a Metro Tobalaba te sirve la 513."):
+        resp = handler.handle(handler_input)
+        assert "513" in resp.output_speech.ssml
+
+
+def test_route_to_destination_no_slot():
+    from src.alexa_handlers import RouteToDestinationIntentHandler
+    from ask_sdk_core.handler_input import HandlerInput
+    from ask_sdk_model import RequestEnvelope, IntentRequest, Intent, Slot
+
+    req = IntentRequest(
+        intent=Intent(
+            name="RouteToDestinationIntent",
+            slots={
+                "Destination": Slot(name="Destination", value=None)
+            }
+        )
+    )
+    envelope = RequestEnvelope(request=req)
+    handler_input = HandlerInput(request_envelope=envelope)
+
+    handler = RouteToDestinationIntentHandler()
+    resp = handler.handle(handler_input)
+    assert "Por favor dime a qué dirección, esquina o lugar quieres ir." in resp.output_speech.ssml
+    assert "¿A dónde deseas ir?" in resp.reprompt.output_speech.ssml
+
+
+def test_route_to_destination_geocode_failed():
+    from src.alexa_handlers import RouteToDestinationIntentHandler
+    from ask_sdk_core.handler_input import HandlerInput
+    from ask_sdk_model import RequestEnvelope, IntentRequest, Intent, Slot
+
+    req = IntentRequest(
+        intent=Intent(
+            name="RouteToDestinationIntent",
+            slots={
+                "Destination": Slot(name="Destination", value="Calle Inexistente 9999")
+            }
+        )
+    )
+    envelope = RequestEnvelope(request=req)
+    handler_input = HandlerInput(request_envelope=envelope)
+
+    handler = RouteToDestinationIntentHandler()
+    with patch("src.alexa_handlers.geocode_address", return_value=None):
+        resp = handler.handle(handler_input)
+        assert "No pude encontrar la dirección o esquina Calle Inexistente 9999" in resp.output_speech.ssml
+        assert "Providencia con Pedro de Valdivia" in resp.output_speech.ssml
+
+
+def test_route_to_destination_via_lambda_handler():
+    req = create_mock_envelope(
+        "IntentRequest",
+        "RouteToDestinationIntent",
+        {"Destination": "Metro Tobalaba"}
+    )
+    with patch("src.alexa_handlers.geocode_address", return_value=(-33.4179, -70.6016)), \
+         patch("src.alexa_handlers.format_route_speech", return_value="Para ir a Metro Tobalaba te sirve la 513."):
+        resp = lambda_handler(req, None)
+        output_speech = resp["response"]["outputSpeech"]["ssml"]
+        assert "513" in output_speech
+
+
+
+
 

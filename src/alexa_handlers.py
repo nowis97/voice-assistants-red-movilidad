@@ -1,5 +1,7 @@
 import logging
 import re
+import sqlite3
+import os
 from ask_sdk_core.dispatch_components import (
     AbstractRequestHandler,
     AbstractExceptionHandler,
@@ -12,6 +14,12 @@ from ask_sdk_model.ui import SimpleCard
 import config
 from src import red_service
 from src import location_service
+from src.location_service import (
+    geocode_address,
+    normalize_destination_query,
+    get_coordinates_from_request,
+)
+from src.red_service import format_route_speech
 
 logger = logging.getLogger(__name__)
 
@@ -435,6 +443,100 @@ class BusesEnRutaIntentHandler(AbstractRequestHandler):
             .set_card(SimpleCard(f"Buses en Ruta {linea.upper()}", speak_output))
             .response
         )
+
+
+class RouteToDestinationIntentHandler(AbstractRequestHandler):
+    """Maneja la consulta de cómo llegar a un destino o qué micros sirven."""
+
+    def can_handle(self, handler_input: HandlerInput) -> bool:
+        return is_intent_name("RouteToDestinationIntent")(handler_input)
+
+    def handle(self, handler_input: HandlerInput) -> Response:
+        slots = handler_input.request_envelope.request.intent.slots or {}
+        dest_slot = slots.get("Destination")
+        dest_value = dest_slot.value if dest_slot and dest_slot.value else None
+
+        if not dest_value or not dest_value.strip():
+            speech = "Por favor dime a qué dirección, esquina o lugar quieres ir."
+            return (
+                handler_input.response_builder
+                .speak(speech)
+                .ask("¿A dónde deseas ir?")
+                .response
+            )
+
+        # 1. Resolver destino a coordenadas
+        norm_dest = normalize_destination_query(dest_value)
+        dest_coords = geocode_address(norm_dest)
+        if not dest_coords:
+            # Reintentar sin normalización adicional por si es un hito directo
+            dest_coords = geocode_address(dest_value)
+
+        if not dest_coords:
+            speech = (
+                f"No pude encontrar la dirección o esquina {dest_value}. "
+                "Por favor intenta diciendo la calle principal y una intersección, por ejemplo: Providencia con Pedro de Valdivia."
+            )
+            return handler_input.response_builder.speak(speech).response
+
+        dest_lat, dest_lon = dest_coords
+
+        # 2. Resolver origen (explícito o automático)
+        orig_slot = slots.get("Origin")
+        orig_value = orig_slot.value if orig_slot and orig_slot.value else None
+        orig_coords = None
+
+        if orig_value:
+            norm_orig = normalize_destination_query(orig_value)
+            orig_coords = geocode_address(norm_orig) or geocode_address(orig_value)
+
+        if not orig_coords:
+            # Obtener desde GPS / Device Address o paradero guardado
+            coords_info = None
+            try:
+                coords_info = get_coordinates_from_request(handler_input)
+            except Exception:
+                coords_info = None
+
+            if coords_info:
+                orig_coords = (coords_info[0], coords_info[1])
+            else:
+                person_id = _extract_person_id(handler_input)
+                user_id = None
+                try:
+                    user_id = handler_input.request_envelope.context.system.user.user_id
+                except Exception:
+                    pass
+
+                user_stops = config.get_user_stops(user_key_or_name=user_id, person_id=person_id)
+                ida_stop = user_stops.get("ida") if isinstance(user_stops, dict) else None
+                vuelta_stop = user_stops.get("vuelta") if isinstance(user_stops, dict) else None
+                stop_code = (
+                    (ida_stop.get("code") if isinstance(ida_stop, dict) else ida_stop)
+                    or (vuelta_stop.get("code") if isinstance(vuelta_stop, dict) else vuelta_stop)
+                    or config.DEFAULT_STOP_CODE
+                )
+
+                # Buscar lat/lon del paradero en stops.db
+                row = None
+                if os.path.exists(location_service.DB_PATH):
+                    try:
+                        conn = sqlite3.connect(location_service.DB_PATH)
+                        c = conn.cursor()
+                        c.execute("SELECT lat, lon FROM stops WHERE code = ?", (stop_code,))
+                        row = c.fetchone()
+                        conn.close()
+                    except Exception as e:
+                        logger.warning(f"Error consultando paradero {stop_code} en DB: {e}")
+
+                if row:
+                    orig_coords = (row[0], row[1])
+                else:
+                    orig_coords = (-33.4578, -70.5891)  # Fallback centro/origen
+
+        # 3. Construir respuesta hablada
+        speech = format_route_speech(dest_value, orig_coords[0], orig_coords[1], dest_lat, dest_lon)
+        return handler_input.response_builder.speak(speech).response
 
 
 class HelpIntentHandler(AbstractRequestHandler):
