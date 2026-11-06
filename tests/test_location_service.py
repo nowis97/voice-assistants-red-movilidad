@@ -46,3 +46,32 @@ def test_find_stops_by_intersection_not_found():
     ida, vuelta = find_stops_by_intersection("CalleFalsaInexistente999", "OtraCalle")
     assert ida is None
     assert vuelta is None
+
+
+def test_clean_spoken_stop_code_standard():
+    from src.location_service import clean_spoken_stop_code
+    assert clean_spoken_stop_code("PD184") == "P D 184"
+    assert clean_spoken_stop_code("PA345") == "P A 345"
+    assert clean_spoken_stop_code("PC2") == "P C 2"
+
+
+def test_clean_spoken_stop_code_edge_cases():
+    from src.location_service import clean_spoken_stop_code
+    assert clean_spoken_stop_code("") == ""
+    assert clean_spoken_stop_code("METRO") == "METRO"
+
+
+def test_normalize_destination_query():
+    from src.location_service import normalize_destination_query
+    q1 = normalize_destination_query("Pedro de Valdivia con Providencia")
+    assert "Pedro de Valdivia / Providencia" in q1
+    assert "Santiago, Chile" in q1
+
+    q2 = normalize_destination_query("Grecia y Salvador")
+    assert "Grecia / Salvador" in q2
+    assert "Santiago, Chile" in q2
+
+    q3 = normalize_destination_query("Apoquindo 1234")
+    assert "Apoquindo 1234" in q3
+    assert "Santiago, Chile" in q3
+

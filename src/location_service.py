@@ -346,3 +346,40 @@ def find_stops_by_intersection(street1: str, street2: str) -> Tuple[Optional[Dic
         logger.error(f"Error buscando paraderos por esquina {street1} con {street2}: {e}", exc_info=True)
         return None, None
 
+
+def clean_spoken_stop_code(code: str) -> str:
+    """
+    Formatea un código de paradero para que Alexa pronuncie las letras deletreadas
+    y el número entero. Ej: 'PD184' -> 'P D 184' ('P D ciento ochenta y cuatro').
+    """
+    if not code:
+        return ""
+    clean = code.strip().upper()
+    match = re.match(r"^([A-Z]+)(\d+)$", clean)
+    if match:
+        letters = " ".join(list(match.group(1)))
+        number = match.group(2)
+        return f"{letters} {number}"
+    return clean
+
+
+def normalize_destination_query(query: str, default_city: str = "Santiago", country: str = "Chile") -> str:
+    """
+    Normaliza el texto de destino dicho por el usuario para maximizar el acierto en OpenStreetMap Nominatim.
+    Convierte 'con', 'y', 'esq' en ' / ' y agrega ciudad y país si no están presentes.
+    """
+    if not query:
+        return ""
+    q = query.strip()
+    # Reemplazar intersecciones
+    q = re.sub(r"\s+(?:con|y|esq\.?|esquina)\s+", " / ", q, flags=re.IGNORECASE)
+    # Limpieza de espacios
+    q = re.sub(r"\s+", " ", q).strip()
+    # Agregar ciudad y país si no están
+    if default_city.lower() not in q.lower():
+        q = f"{q}, {default_city}"
+    if country.lower() not in q.lower():
+        q = f"{q}, {country}"
+    return q
+
+
