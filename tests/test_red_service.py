@@ -206,3 +206,108 @@ def test_format_dual_prediction_no_buses_both(mock_preds):
 
     assert "No hay buses del recorrido 513 aproximándose a tu esquina Avenida Grecia con Salvador en este momento." == speech
 
+
+def test_plan_trip_direct_route():
+    from src.red_service import plan_trip
+    mock_response = [
+        {
+            "duration": 1560,
+            "transfers": 0,
+            "legs": [
+                {
+                    "mode": "WALK",
+                    "distance": 120.0,
+                    "to": {"name": "PD184-Parada / Salvador", "stopId": "PD184"}
+                },
+                {
+                    "mode": "BUS",
+                    "route": "513",
+                    "from": {"name": "PD184-Parada / Salvador", "stopId": "PD184"},
+                    "to": {"name": "PC2-Parada 7 / (M) Pedro de Valdivia", "stopId": "PC2"},
+                    "duration": 1200.0
+                },
+                {
+                    "mode": "WALK",
+                    "distance": 80.0,
+                    "to": {"name": "Destination"}
+                }
+            ]
+        }
+    ]
+
+    with patch("requests.get") as mock_get:
+        mock_get.return_value.status_code = 200
+        mock_get.return_value.json.return_value = mock_response
+
+        res = plan_trip(-33.4578, -70.5891, -33.4225, -70.6094)
+        assert res["success"] is True
+        assert res["total_itineraries"] == 1
+        assert len(res["direct_routes"]) == 1
+        direct = res["direct_routes"][0]
+        assert direct["route"] == "513"
+        assert direct["from_stop_id"] == "PD184"
+        assert direct["walk_distance_meters"] == 120
+        assert direct["duration_minutes"] == 26
+
+
+def test_plan_trip_transfer_route():
+    from src.red_service import plan_trip
+    mock_response = [
+        {
+            "duration": 2100,
+            "transfers": 1,
+            "legs": [
+                {
+                    "mode": "WALK",
+                    "distance": 90.0,
+                    "to": {"name": "PD184", "stopId": "PD184"}
+                },
+                {
+                    "mode": "BUS",
+                    "route": "506",
+                    "from": {"name": "PD184", "stopId": "PD184"},
+                    "to": {"name": "PC86-Plaza Italia", "stopId": "PC86"}
+                },
+                {
+                    "mode": "WALK",
+                    "distance": 50.0,
+                    "to": {"name": "PA383", "stopId": "PA383"}
+                },
+                {
+                    "mode": "BUS",
+                    "route": "405",
+                    "from": {"name": "PA383", "stopId": "PA383"},
+                    "to": {"name": "PC153", "stopId": "PC153"}
+                }
+            ]
+        }
+    ]
+
+    with patch("requests.get") as mock_get:
+        mock_get.return_value.status_code = 200
+        mock_get.return_value.json.return_value = mock_response
+
+        res = plan_trip(-33.4578, -70.5891, -33.4000, -70.5500)
+        assert res["success"] is True
+        assert len(res["direct_routes"]) == 0
+        assert len(res["transfer_routes"]) == 1
+        transfer = res["transfer_routes"][0]
+        assert transfer["first_route"] == "506"
+        assert transfer["first_stop_id"] == "PD184"
+        assert transfer["transfer_point"] == "Plaza Italia"
+        assert transfer["second_route"] == "405"
+        assert transfer["duration_minutes"] == 35
+
+
+def test_plan_trip_network_error():
+    import requests
+    from src.red_service import plan_trip
+
+    with patch("requests.get", side_effect=requests.RequestException("Timeout")):
+        res = plan_trip(-33.4578, -70.5891, -33.4000, -70.5500)
+        assert res["success"] is False
+        assert "error" in res
+        assert res["direct_routes"] == []
+        assert res["transfer_routes"] == []
+
+

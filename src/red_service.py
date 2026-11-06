@@ -340,3 +340,106 @@ def format_travel_summary_speech(
         parts.append(f"Tu saldo Bip es de {bal_res['balance']} pesos.")
 
     return " ".join(parts)
+
+
+def plan_trip(
+    origin_lat: float,
+    origin_lon: float,
+    dest_lat: float,
+    dest_lon: float
+) -> Dict[str, Any]:
+    """
+    Consulta el planificador multimodal oficial de Red Movilidad para obtener rutas óptimas
+    entre dos coordenadas de Santiago.
+    """
+    url = "https://appred.tstgo.cl/phone/v13/routeplanner/calculate"
+    params = {
+        "origin": f"{origin_lat},{origin_lon}",
+        "destination": f"{dest_lat},{dest_lon}"
+    }
+
+    try:
+        response = requests.get(url, headers=config.RED_HEADERS, params=params, timeout=TIMEOUT_SECONDS)
+        if response.status_code != 200:
+            logger.warning(f"Error del planificador Red Movilidad: HTTP {response.status_code}")
+            return {
+                "success": False,
+                "error": f"Error del planificador de Red (HTTP {response.status_code}).",
+                "direct_routes": [],
+                "transfer_routes": [],
+                "total_itineraries": 0
+            }
+
+        data = response.json()
+        if not isinstance(data, list):
+            return {
+                "success": False,
+                "error": "Respuesta inesperada del servicio de rutas.",
+                "direct_routes": [],
+                "transfer_routes": [],
+                "total_itineraries": 0
+            }
+
+        direct_routes = []
+        transfer_routes = []
+
+        for itin in data:
+            duration_min = round(itin.get("duration", 0) / 60)
+            transfers = itin.get("transfers", 0)
+            legs = itin.get("legs", [])
+
+            transit_legs = [l for l in legs if l.get("mode") in ("BUS", "SUBWAY")]
+            walk_legs = [l for l in legs if l.get("mode") == "WALK"]
+
+            first_walk = walk_legs[0].get("distance", 0) if walk_legs else 0
+
+            if transfers == 0 and transit_legs:
+                t_leg = transit_legs[0]
+                from_data = t_leg.get("from", {})
+                to_data = t_leg.get("to", {})
+                direct_routes.append({
+                    "mode": t_leg.get("mode"),
+                    "route": t_leg.get("route"),
+                    "from_stop_id": from_data.get("stopId", ""),
+                    "from_stop_name": clean_intersection_name(from_data.get("name", "")),
+                    "to_stop_id": to_data.get("stopId", ""),
+                    "to_stop_name": clean_intersection_name(to_data.get("name", "")),
+                    "walk_distance_meters": int(first_walk),
+                    "duration_minutes": duration_min
+                })
+            elif transfers >= 1 and len(transit_legs) >= 2:
+                leg1 = transit_legs[0]
+                leg2 = transit_legs[1]
+                from1 = leg1.get("from", {})
+                to1 = leg1.get("to", {})
+                to2 = leg2.get("to", {})
+                transfer_routes.append({
+                    "first_mode": leg1.get("mode"),
+                    "first_route": leg1.get("route"),
+                    "first_stop_id": from1.get("stopId", ""),
+                    "first_stop_name": clean_intersection_name(from1.get("name", "")),
+                    "transfer_point": clean_intersection_name(to1.get("name", "")),
+                    "second_mode": leg2.get("mode"),
+                    "second_route": leg2.get("route"),
+                    "destination_stop_name": clean_intersection_name(to2.get("name", "")),
+                    "walk_distance_meters": int(first_walk),
+                    "duration_minutes": duration_min,
+                    "transfers": transfers
+                })
+
+        return {
+            "success": True,
+            "direct_routes": direct_routes,
+            "transfer_routes": transfer_routes,
+            "total_itineraries": len(data)
+        }
+    except requests.RequestException as e:
+        logger.error(f"Fallo de conexión al planificador Red: {e}")
+        return {
+            "success": False,
+            "error": "No fue posible conectar con el planificador de rutas de Red Movilidad.",
+            "direct_routes": [],
+            "transfer_routes": [],
+            "total_itineraries": 0
+        }
+
