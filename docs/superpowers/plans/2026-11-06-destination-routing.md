@@ -562,7 +562,7 @@ git commit -m "feat: add format_route_speech for destination routing"
 - Handles: `RouteToDestinationIntent` with slots `Destination` and optional `Origin`.
 - Uses: `geocode_address`, `normalize_destination_query`, `format_route_speech`, `config.get_user_stops`, `get_coordinates_from_request`.
 
-- [ ] **Step 1: Write failing test in `tests/test_handlers.py`**
+- [x] **Step 1: Write failing test in `tests/test_handlers.py`**
 
 ```python
 def test_route_to_destination_intent_handler():
@@ -590,12 +590,12 @@ def test_route_to_destination_intent_handler():
         assert "513" in resp.output_speech.ssml
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `python -m pytest tests/test_handlers.py -k "test_route_to_destination" -v`
 Expected: FAIL with `ImportError: cannot import name 'RouteToDestinationIntentHandler'`
 
-- [ ] **Step 3: Implement `RouteToDestinationIntentHandler` in `src/alexa_handlers.py` and register in `lambda_function.py`**
+- [x] **Step 3: Implement `RouteToDestinationIntentHandler` in `src/alexa_handlers.py` and register in `lambda_function.py`**
 
 ```python
 class RouteToDestinationIntentHandler(AbstractRequestHandler):
@@ -667,7 +667,7 @@ class RouteToDestinationIntentHandler(AbstractRequestHandler):
         return handler_input.response_builder.speak(speech).response
 ```
 
-- [ ] **Step 4: Update interaction models (`es-US.json`, `es-ES.json`, `es-MX.json`)**
+- [x] **Step 4: Update interaction models (`es-US.json`, `es-ES.json`, `es-MX.json`)**
 
 Add intent:
 ```json
@@ -699,12 +699,12 @@ Add intent:
 }
 ```
 
-- [ ] **Step 5: Run tests to verify all pass**
+- [x] **Step 5: Run tests to verify all pass**
 
 Run: `python -m pytest tests/ -v`
 Expected: ALL PASS
 
-- [ ] **Step 6: Commit changes**
+- [x] **Step 6: Commit changes**
 
 ```bash
 git add src/alexa_handlers.py lambda_function.py skill-package/ tests/test_handlers.py
