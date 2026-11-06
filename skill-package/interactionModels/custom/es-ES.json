@@ -5,15 +5,32 @@
       "intents": [
         {
           "name": "AMAZON.CancelIntent",
-          "samples": ["cancelar", "cancela", "olvídalo", "para"]
+          "samples": [
+            "cancelar",
+            "cancela",
+            "olvídalo",
+            "para"
+          ]
         },
         {
           "name": "AMAZON.HelpIntent",
-          "samples": ["ayuda", "qué puedes hacer", "cómo funciona", "qué comandos tienes"]
+          "samples": [
+            "ayuda",
+            "qué puedes hacer",
+            "cómo funciona",
+            "qué comandos tienes"
+          ]
         },
         {
           "name": "AMAZON.StopIntent",
-          "samples": ["detener", "adiós", "chao", "para ya", "salir", "terminar"]
+          "samples": [
+            "detener",
+            "adiós",
+            "chao",
+            "para ya",
+            "salir",
+            "terminar"
+          ]
         },
         {
           "name": "AMAZON.NavigateHomeIntent",
@@ -245,10 +262,6 @@
             {
               "name": "Destination",
               "type": "AMAZON.SearchQuery"
-            },
-            {
-              "name": "Origin",
-              "type": "AMAZON.SearchQuery"
             }
           ],
           "samples": [
@@ -261,9 +274,7 @@
             "dime cómo llegar a {Destination}",
             "dime la ruta para ir a {Destination}",
             "dime qué micro me sirve a {Destination}",
-            "cuál micro me sirve para ir a {Destination}",
-            "cómo llego desde {Origin} hasta {Destination}",
-            "qué micro me sirve desde {Origin} hasta {Destination}"
+            "cuál micro me sirve para ir a {Destination}"
           ]
         }
       ],
@@ -271,56 +282,443 @@
         {
           "name": "LINEA_BUS",
           "values": [
-            { "name": { "value": "513", "synonyms": ["quinientos trece", "cinco uno tres", "cinco trece", "la quinientos trece"] } },
-            { "name": { "value": "225", "synonyms": ["doscientos veinticinco", "dos dos cinco", "dos veinticinco", "la doscientos veinticinco"] } },
-            { "name": { "value": "D09", "synonyms": ["d 09", "de 09", "d nueve", "de nueve", "de cero nueve", "la d 09", "la d nueve", "de nueve"] } },
-            { "name": { "value": "401", "synonyms": ["cuatro cero uno", "cuatrocientos uno"] } },
-            { "name": { "value": "506", "synonyms": ["cinco cero seis", "quinientos seis"] } },
-            { "name": { "value": "506e", "synonyms": ["506 e", "quinientos seis e", "quinientos seis expresa"] } },
-            { "name": { "value": "401c", "synonyms": ["401 c", "cuatrocientos uno corta"] } },
-            { "name": { "value": "210", "synonyms": ["dos diez", "doscientos diez"] } },
-            { "name": { "value": "210v", "synonyms": ["210 v", "doscientos diez corta"] } },
-            { "name": { "value": "405", "synonyms": ["cuatro cero cinco", "cuatrocientos cinco"] } },
-            { "name": { "value": "421", "synonyms": ["cuatro veintiuno", "cuatrocientos veintiuno"] } },
-            { "name": { "value": "404", "synonyms": ["cuatro cero cuatro", "cuatrocientos cuatro"] } },
-            { "name": { "value": "106", "synonyms": ["uno cero seis", "ciento seis"] } },
-            { "name": { "value": "104", "synonyms": ["uno cero cuatro", "ciento cuatro"] } },
-            { "name": { "value": "301", "synonyms": ["tres cero uno", "trescientos uno"] } },
-            { "name": { "value": "712", "synonyms": ["siete doce", "setecientos doce"] } },
-            { "name": { "value": "B02", "synonyms": ["b 02", "be 02", "b dos", "be dos"] } },
-            { "name": { "value": "B01", "synonyms": ["b 01", "be 01", "b uno"] } },
-            { "name": { "value": "C02", "synonyms": ["c 02", "ce 02", "c dos"] } },
-            { "name": { "value": "C01", "synonyms": ["c 01", "ce 01"] } },
-            { "name": { "value": "D11", "synonyms": ["d 11", "de 11", "d once", "de once"] } },
-            { "name": { "value": "D01", "synonyms": ["d 01", "de 01"] } },
-            { "name": { "value": "E04", "synonyms": ["e 04", "e cuatro"] } },
-            { "name": { "value": "F12", "synonyms": ["f 12", "efe 12", "f doce"] } },
-            { "name": { "value": "G05", "synonyms": ["g 05", "ge 05", "g cinco"] } },
-            { "name": { "value": "H02", "synonyms": ["h 02", "hache 02", "h dos"] } },
-            { "name": { "value": "I09", "synonyms": ["i 09", "i nueve", "i latina cero nueve"] } },
-            { "name": { "value": "I01", "synonyms": ["i 01", "i uno"] } },
-            { "name": { "value": "J10", "synonyms": ["j 10", "jota 10", "j diez"] } },
-            { "name": { "value": "J01", "synonyms": ["j 01", "jota 01"] } }
+            {
+              "name": {
+                "value": "513",
+                "synonyms": [
+                  "quinientos trece",
+                  "cinco uno tres",
+                  "cinco trece",
+                  "la quinientos trece"
+                ]
+              }
+            },
+            {
+              "name": {
+                "value": "225",
+                "synonyms": [
+                  "doscientos veinticinco",
+                  "dos dos cinco",
+                  "dos veinticinco",
+                  "la doscientos veinticinco"
+                ]
+              }
+            },
+            {
+              "name": {
+                "value": "D09",
+                "synonyms": [
+                  "d 09",
+                  "de 09",
+                  "d nueve",
+                  "de nueve",
+                  "de cero nueve",
+                  "la d 09",
+                  "la d nueve",
+                  "de nueve"
+                ]
+              }
+            },
+            {
+              "name": {
+                "value": "401",
+                "synonyms": [
+                  "cuatro cero uno",
+                  "cuatrocientos uno"
+                ]
+              }
+            },
+            {
+              "name": {
+                "value": "506",
+                "synonyms": [
+                  "cinco cero seis",
+                  "quinientos seis"
+                ]
+              }
+            },
+            {
+              "name": {
+                "value": "506e",
+                "synonyms": [
+                  "506 e",
+                  "quinientos seis e",
+                  "quinientos seis expresa"
+                ]
+              }
+            },
+            {
+              "name": {
+                "value": "401c",
+                "synonyms": [
+                  "401 c",
+                  "cuatrocientos uno corta"
+                ]
+              }
+            },
+            {
+              "name": {
+                "value": "210",
+                "synonyms": [
+                  "dos diez",
+                  "doscientos diez"
+                ]
+              }
+            },
+            {
+              "name": {
+                "value": "210v",
+                "synonyms": [
+                  "210 v",
+                  "doscientos diez corta"
+                ]
+              }
+            },
+            {
+              "name": {
+                "value": "405",
+                "synonyms": [
+                  "cuatro cero cinco",
+                  "cuatrocientos cinco"
+                ]
+              }
+            },
+            {
+              "name": {
+                "value": "421",
+                "synonyms": [
+                  "cuatro veintiuno",
+                  "cuatrocientos veintiuno"
+                ]
+              }
+            },
+            {
+              "name": {
+                "value": "404",
+                "synonyms": [
+                  "cuatro cero cuatro",
+                  "cuatrocientos cuatro"
+                ]
+              }
+            },
+            {
+              "name": {
+                "value": "106",
+                "synonyms": [
+                  "uno cero seis",
+                  "ciento seis"
+                ]
+              }
+            },
+            {
+              "name": {
+                "value": "104",
+                "synonyms": [
+                  "uno cero cuatro",
+                  "ciento cuatro"
+                ]
+              }
+            },
+            {
+              "name": {
+                "value": "301",
+                "synonyms": [
+                  "tres cero uno",
+                  "trescientos uno"
+                ]
+              }
+            },
+            {
+              "name": {
+                "value": "712",
+                "synonyms": [
+                  "siete doce",
+                  "setecientos doce"
+                ]
+              }
+            },
+            {
+              "name": {
+                "value": "B02",
+                "synonyms": [
+                  "b 02",
+                  "be 02",
+                  "b dos",
+                  "be dos"
+                ]
+              }
+            },
+            {
+              "name": {
+                "value": "B01",
+                "synonyms": [
+                  "b 01",
+                  "be 01",
+                  "b uno"
+                ]
+              }
+            },
+            {
+              "name": {
+                "value": "C02",
+                "synonyms": [
+                  "c 02",
+                  "ce 02",
+                  "c dos"
+                ]
+              }
+            },
+            {
+              "name": {
+                "value": "C01",
+                "synonyms": [
+                  "c 01",
+                  "ce 01"
+                ]
+              }
+            },
+            {
+              "name": {
+                "value": "D11",
+                "synonyms": [
+                  "d 11",
+                  "de 11",
+                  "d once",
+                  "de once"
+                ]
+              }
+            },
+            {
+              "name": {
+                "value": "D01",
+                "synonyms": [
+                  "d 01",
+                  "de 01"
+                ]
+              }
+            },
+            {
+              "name": {
+                "value": "E04",
+                "synonyms": [
+                  "e 04",
+                  "e cuatro"
+                ]
+              }
+            },
+            {
+              "name": {
+                "value": "F12",
+                "synonyms": [
+                  "f 12",
+                  "efe 12",
+                  "f doce"
+                ]
+              }
+            },
+            {
+              "name": {
+                "value": "G05",
+                "synonyms": [
+                  "g 05",
+                  "ge 05",
+                  "g cinco"
+                ]
+              }
+            },
+            {
+              "name": {
+                "value": "H02",
+                "synonyms": [
+                  "h 02",
+                  "hache 02",
+                  "h dos"
+                ]
+              }
+            },
+            {
+              "name": {
+                "value": "I09",
+                "synonyms": [
+                  "i 09",
+                  "i nueve",
+                  "i latina cero nueve"
+                ]
+              }
+            },
+            {
+              "name": {
+                "value": "I01",
+                "synonyms": [
+                  "i 01",
+                  "i uno"
+                ]
+              }
+            },
+            {
+              "name": {
+                "value": "J10",
+                "synonyms": [
+                  "j 10",
+                  "jota 10",
+                  "j diez"
+                ]
+              }
+            },
+            {
+              "name": {
+                "value": "J01",
+                "synonyms": [
+                  "j 01",
+                  "jota 01"
+                ]
+              }
+            }
           ]
         },
         {
           "name": "PARADERO_BUS",
           "values": [
-            { "name": { "value": "PA345", "synonyms": ["pa 345", "pe a 345", "pe a tres cuatro cinco"] } },
-            { "name": { "value": "PC186", "synonyms": ["pc 186", "pe ce 186", "pe ce uno ocho seis"] } },
-            { "name": { "value": "PI1813", "synonyms": ["pi 1813", "pe i 1813", "pe i mil ochocientos trece"] } },
-            { "name": { "value": "PI201", "synonyms": ["pi 201", "pe i 201"] } },
-            { "name": { "value": "PA1", "synonyms": ["pa 1", "pe a 1", "pe a uno"] } },
-            { "name": { "value": "PA370", "synonyms": ["pa 370", "pe a 370"] } },
-            { "name": { "value": "PC123", "synonyms": ["pc 123", "pe ce 123"] } },
-            { "name": { "value": "PD100", "synonyms": ["pd 100", "pe de 100", "pe de cien"] } },
-            { "name": { "value": "PB150", "synonyms": ["pb 150", "pe be 150"] } },
-            { "name": { "value": "PG20", "synonyms": ["pg 20", "pe ge 20"] } },
-            { "name": { "value": "PF50", "synonyms": ["pf 50", "pe efe 50"] } },
-            { "name": { "value": "PJ30", "synonyms": ["pj 30", "pe jota 30"] } },
-            { "name": { "value": "PE10", "synonyms": ["pe 10", "pe e 10"] } },
-            { "name": { "value": "PH1", "synonyms": ["ph 1", "pe hache 1"] } },
-            { "name": { "value": "PA456", "synonyms": ["pa 456", "pe a 456"] } }
+            {
+              "name": {
+                "value": "PA345",
+                "synonyms": [
+                  "pa 345",
+                  "pe a 345",
+                  "pe a tres cuatro cinco"
+                ]
+              }
+            },
+            {
+              "name": {
+                "value": "PC186",
+                "synonyms": [
+                  "pc 186",
+                  "pe ce 186",
+                  "pe ce uno ocho seis"
+                ]
+              }
+            },
+            {
+              "name": {
+                "value": "PI1813",
+                "synonyms": [
+                  "pi 1813",
+                  "pe i 1813",
+                  "pe i mil ochocientos trece"
+                ]
+              }
+            },
+            {
+              "name": {
+                "value": "PI201",
+                "synonyms": [
+                  "pi 201",
+                  "pe i 201"
+                ]
+              }
+            },
+            {
+              "name": {
+                "value": "PA1",
+                "synonyms": [
+                  "pa 1",
+                  "pe a 1",
+                  "pe a uno"
+                ]
+              }
+            },
+            {
+              "name": {
+                "value": "PA370",
+                "synonyms": [
+                  "pa 370",
+                  "pe a 370"
+                ]
+              }
+            },
+            {
+              "name": {
+                "value": "PC123",
+                "synonyms": [
+                  "pc 123",
+                  "pe ce 123"
+                ]
+              }
+            },
+            {
+              "name": {
+                "value": "PD100",
+                "synonyms": [
+                  "pd 100",
+                  "pe de 100",
+                  "pe de cien"
+                ]
+              }
+            },
+            {
+              "name": {
+                "value": "PB150",
+                "synonyms": [
+                  "pb 150",
+                  "pe be 150"
+                ]
+              }
+            },
+            {
+              "name": {
+                "value": "PG20",
+                "synonyms": [
+                  "pg 20",
+                  "pe ge 20"
+                ]
+              }
+            },
+            {
+              "name": {
+                "value": "PF50",
+                "synonyms": [
+                  "pf 50",
+                  "pe efe 50"
+                ]
+              }
+            },
+            {
+              "name": {
+                "value": "PJ30",
+                "synonyms": [
+                  "pj 30",
+                  "pe jota 30"
+                ]
+              }
+            },
+            {
+              "name": {
+                "value": "PE10",
+                "synonyms": [
+                  "pe 10",
+                  "pe e 10"
+                ]
+              }
+            },
+            {
+              "name": {
+                "value": "PH1",
+                "synonyms": [
+                  "ph 1",
+                  "pe hache 1"
+                ]
+              }
+            },
+            {
+              "name": {
+                "value": "PA456",
+                "synonyms": [
+                  "pa 456",
+                  "pe a 456"
+                ]
+              }
+            }
           ]
         },
         {
@@ -329,43 +727,72 @@
             {
               "name": {
                 "value": "ida",
-                "synonyms": ["de ida", "hacia el centro", "al centro", "sentido ida"]
+                "synonyms": [
+                  "de ida",
+                  "hacia el centro",
+                  "al centro",
+                  "sentido ida"
+                ]
               }
             },
             {
               "name": {
                 "value": "vuelta",
-                "synonyms": ["de vuelta", "hacia la casa", "a la casa", "sentido vuelta"]
+                "synonyms": [
+                  "de vuelta",
+                  "hacia la casa",
+                  "a la casa",
+                  "sentido vuelta"
+                ]
               }
             },
             {
               "name": {
                 "value": "regreso",
-                "synonyms": ["de regreso", "retorno", "de retorno"]
+                "synonyms": [
+                  "de regreso",
+                  "retorno",
+                  "de retorno"
+                ]
               }
             },
             {
               "name": {
                 "value": "centro",
-                "synonyms": ["hacia el centro", "hacia centro"]
+                "synonyms": [
+                  "hacia el centro",
+                  "hacia centro"
+                ]
               }
             },
             {
               "name": {
                 "value": "casa",
-                "synonyms": ["hacia mi casa", "para la casa", "a la casa"]
+                "synonyms": [
+                  "hacia mi casa",
+                  "para la casa",
+                  "a la casa"
+                ]
               }
             },
             {
               "name": {
                 "value": "trabajo",
-                "synonyms": ["hacia el trabajo", "a la pega", "hacia la pega"]
+                "synonyms": [
+                  "hacia el trabajo",
+                  "a la pega",
+                  "hacia la pega"
+                ]
               }
             },
             {
               "name": {
                 "value": "peñalolén",
-                "synonyms": ["hacia peñalolén", "a peñalolén", "penalolen"]
+                "synonyms": [
+                  "hacia peñalolén",
+                  "a peñalolén",
+                  "penalolen"
+                ]
               }
             }
           ]
