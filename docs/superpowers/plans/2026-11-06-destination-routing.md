@@ -718,21 +718,21 @@ git commit -m "feat: add RouteToDestinationIntentHandler and update interaction 
 **Files:**
 - None (Deployment & Verification)
 
-- [ ] **Step 1: Run full test suite with coverage**
+- [x] **Step 1: Run full test suite with coverage**
 
 Run: `python -m pytest --cov=src tests/`
-Expected: 100% tests passing, clean assertions.
+Expected: 100% tests passing, clean assertions. (Completed: 54/54 tests passing)
 
-- [ ] **Step 2: Deploy to Raspberry Pi 3**
+- [x] **Step 2: Deploy to Raspberry Pi 3**
 
-Run rsync or scp to `nowis@192.168.0.112:/home/nowis/alexa-red-movilidad/`, restart `alexa-red.service`, and verify `systemctl status alexa-red`.
+Run rsync or scp to `nowis@192.168.0.115:/home/nowis/alexa-red-movilidad/`, restart `alexa-red.service`, and verify `systemctl status alexa-red`. (Completed: scp updated files, systemctl --user restart alexa-red.service active & tested)
 
-- [ ] **Step 3: Push to GitHub repository**
+- [x] **Step 3: Push to GitHub repository**
 
 Run: `git push origin master`
-Expected: Triggers GitHub Actions workflow (`deploy-skill.yml`) to deploy new interaction models to Alexa Developer Console.
+Expected: Triggers GitHub Actions workflow (`deploy-skill.yml`) to deploy new interaction models to Alexa Developer Console. (Completed: commit 1a0d5d8 pushed, GitHub Actions run 42154863293 succeeded)
 
-- [ ] **Step 4: Verify Alexa SMAPI Build Status**
+- [x] **Step 4: Verify Alexa SMAPI Build Status**
 
 Run: `ask smapi get-skill-status --skill-id amzn1.ask.skill.2aa8d315-fc92-49e2-99e1-63943a4d2aef`
-Expected: `interactionModel.es-US.lastUpdateTimeStatus == "SUCCEEDED"`.
+Expected: `interactionModel.es-US.lastUpdateTimeStatus == "SUCCEEDED"`. (Completed: manifest and models for es-ES, es-MX, es-US all SUCCEEDED)
