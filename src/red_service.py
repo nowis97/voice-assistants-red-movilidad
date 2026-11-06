@@ -1,6 +1,7 @@
 import math
 import logging
 import requests
+import re
 from typing import Optional, Dict, Any, List
 import config
 
@@ -480,6 +481,11 @@ def format_route_speech(
     if not directs and not transfers:
         return f"No encontré recorridos disponibles para ir a {destination_text} en este momento."
 
+    # Limpieza de preposición natural para el destino
+    clean_dest = re.sub(r"^(?:al\s+|a\s+la\s+|a\s+los\s+|a\s+las\s+|a\s+|el\s+|la\s+|los\s+|las\s+)", "", destination_text.strip(), flags=re.IGNORECASE).strip()
+    prep = "al" if re.match(r"^(?:al\s+|el\s+)", destination_text.strip(), flags=re.IGNORECASE) else "a"
+    dest_display = f"{prep} {clean_dest}" if clean_dest else destination_text
+
     # Caso 1: Ruta Directa
     if directs:
         best_direct = directs[0]
@@ -500,7 +506,7 @@ def format_route_speech(
 
         walk_phrase = f", a {walk_m} metros," if walk_m > 30 else ""
         return (
-            f"Para ir a {destination_text}, te sirve la {route} en tu paradero {spoken_stop}{walk_phrase}. "
+            f"Para ir {dest_display}, te sirve la {route} en tu paradero {spoken_stop}{walk_phrase}. "
             f"{eta_phrase.strip()} El viaje toma unos {duration} minutos."
         )
 
@@ -518,7 +524,7 @@ def format_route_speech(
         eta1 = f" que {_format_single_bus_arrival(pred1['buses'][0])},"
 
     return (
-        f"Para llegar a {destination_text} no hay micro directa desde tu esquina. "
+        f"Para llegar {dest_display} no hay micro directa desde tu esquina. "
         f"Te sugiero tomar la {r1} en el paradero {s1}{eta1} bajarte en {tr_point} y "
         f"combinar con la {r2}. En total son unos {dur} minutos de viaje."
     )
