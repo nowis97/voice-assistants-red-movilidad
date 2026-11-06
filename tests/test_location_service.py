@@ -75,6 +75,14 @@ def test_normalize_destination_query():
     assert "Apoquindo 1234" in q3
     assert "Santiago, Chile" in q3
 
+    q4 = normalize_destination_query("al Costanera Center")
+    assert q4.startswith("Costanera Center")
+    assert "al Costanera" not in q4
+
+    q5 = normalize_destination_query("el Costanera Center")
+    assert q5.startswith("Costanera Center")
+    assert "el Costanera" not in q5
+
 
 def test_find_stops_by_intersection_accent_insensitive_jose_arrieta():
     ida, vuelta = find_stops_by_intersection("jose arrieta", "ictinos")

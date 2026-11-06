@@ -415,11 +415,20 @@ def clean_spoken_stop_code(code: str) -> str:
 def normalize_destination_query(query: str, default_city: str = "Santiago", country: str = "Chile") -> str:
     """
     Normaliza el texto de destino dicho por el usuario para maximizar el acierto en OpenStreetMap Nominatim.
-    Convierte 'con', 'y', 'esq' en ' / ' y agrega ciudad y país si no están presentes.
+    Limpia artículos y preposiciones iniciales ('al Costanera Center' -> 'Costanera Center'),
+    convierte 'con', 'y', 'esq' en ' / ' y agrega ciudad y país si no están presentes.
     """
     if not query:
         return ""
     q = query.strip()
+    # Eliminar artículos o preposiciones iniciales que confunden a Nominatim
+    q = re.sub(
+        r"^(?:para\s+ir\s+al\s+|para\s+ir\s+a\s+la\s+|para\s+ir\s+a\s+|ir\s+al\s+|ir\s+a\s+la\s+|ir\s+a\s+|hacia\s+el\s+|hacia\s+la\s+|hacia\s+|al\s+|a\s+la\s+|a\s+los\s+|a\s+las\s+|a\s+|el\s+|la\s+|los\s+|las\s+)",
+        "",
+        q,
+        flags=re.IGNORECASE
+    ).strip()
+
     # Reemplazar intersecciones
     q = re.sub(r"\s+(?:con|y|esq\.?|esquina)\s+", " / ", q, flags=re.IGNORECASE)
     # Limpieza de espacios
