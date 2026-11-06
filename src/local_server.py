@@ -147,11 +147,13 @@ def dashboard():
   <script>
     let isFetching = false;
 
+    const apiPrefix = window.location.pathname.startsWith('/alexa') ? '/alexa/api' : '/api';
+
     async function fetchLogs() {
       if (isFetching) return;
       isFetching = true;
       try {
-        const res = await fetch('/api/logs?limit=50');
+        const res = await fetch(`${apiPrefix}/logs?limit=50`);
         if (!res.ok) throw new Error('Error HTTP ' + res.status);
         const data = await res.json();
         renderLogs(data);
@@ -165,7 +167,7 @@ def dashboard():
     async function clearLogs() {
       if (!confirm('¿Deseas vaciar el historial de eventos?')) return;
       try {
-        await fetch('/api/logs/clear', { method: 'POST' });
+        await fetch(`${apiPrefix}/logs/clear`, { method: 'POST' });
         fetchLogs();
       } catch (err) {
         console.error('Error clearing logs:', err);
