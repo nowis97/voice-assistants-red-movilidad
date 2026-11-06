@@ -591,6 +591,22 @@ class CatchAllExceptionHandler(AbstractExceptionHandler):
     def handle(self, handler_input: HandlerInput, exception: Exception) -> Response:
         logger.error(f"Error procesando solicitud: {exception}", exc_info=True)
         speak_output = "Lo siento, tuve un problema al consultar la información de Red Movilidad. Intenta de nuevo en unos segundos."
+
+        try:
+            from src import observability
+            req_attrs = handler_input.attributes_manager.request_attributes
+            observability.store.record(
+                request_type=req_attrs.get("_request_type", "Error"),
+                intent_name=req_attrs.get("_intent_name"),
+                slots=req_attrs.get("_slots"),
+                user_id=req_attrs.get("_user_id"),
+                speech=speak_output,
+                status="error",
+                error_detail=str(exception)
+            )
+        except Exception as e:
+            logger.warning(f"Error registrando observabilidad de excepción: {e}")
+
         return (
             handler_input.response_builder
             .speak(speak_output)
