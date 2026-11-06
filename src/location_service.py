@@ -5,6 +5,7 @@ import logging
 import requests
 import urllib.parse
 import re
+import unicodedata
 from typing import Optional, Tuple, Dict, Any
 
 logger = logging.getLogger(__name__)
@@ -269,8 +270,10 @@ def find_opposing_stop(stop_code: str, max_meters: int = 250) -> Optional[Dict[s
                 continue
 
             cleaned_cand = clean_intersection_name(c_name)
-            # Priorizar paraderos que compartan el mismo eje vial
-            axis_match = (main_axis.lower() in cleaned_cand.lower() or
+            # Priorizar paraderos que compartan el mismo eje vial (insensible a tildes)
+            main_clean = strip_accents(main_axis.lower())
+            cand_clean = strip_accents(cleaned_cand.lower())
+            axis_match = (main_clean in cand_clean or
                           ("metro" in cleaned_origin.lower() and "metro" in cleaned_cand.lower()))
 
             if axis_match and dist_m < min_dist:
@@ -289,29 +292,75 @@ def find_opposing_stop(stop_code: str, max_meters: int = 250) -> Optional[Dict[s
         return None
 
 
+def strip_accents(text: str) -> str:
+    """Elimina tildes y diacríticos para comparaciones fonéticas en español."""
+    if not text:
+        return ""
+    return "".join(
+        c for c in unicodedata.normalize("NFD", text)
+        if unicodedata.category(c) != "Mn"
+    )
+
+
+def clean_street_search_term(term: str) -> str:
+    """Normaliza un nombre de calle eliminando prefijos de tipo de vía y tildes."""
+    if not term:
+        return ""
+    t = strip_accents(term.strip().lower())
+    t = re.sub(r"^(?:avenida|avda\.?|av\.?|calle|pasaje|pje\.?)\s+", "", t)
+    return t.strip()
+
+
 def find_stops_by_intersection(street1: str, street2: str) -> Tuple[Optional[Dict[str, Any]], Optional[Dict[str, Any]]]:
     """
-    Busca los dos paraderos enfrentados en una esquina dada por dos calles.
+    Busca los dos paraderos enfrentados en una esquina dada por dos calles,
+    con soporte insensible a tildes (ej: 'jose arrieta' encuentra 'José Arrieta')
+    y prefijos de vía ('avenida', 'calle', etc.).
     Retorna (stop_ida, stop_vuelta).
     """
     if not os.path.exists(DB_PATH) or not street1:
         return None, None
 
-    s1 = street1.strip()
-    s2 = street2.strip() if street2 else ""
+    c1 = clean_street_search_term(street1)
+    c2 = clean_street_search_term(street2) if street2 else ""
 
     try:
         conn = sqlite3.connect(DB_PATH)
+        conn.create_function("strip_accents", 1, strip_accents)
         c = conn.cursor()
 
-        query = "SELECT code, name, lat, lon FROM stops WHERE name LIKE ?"
-        params = [f"%{s1}%"]
-        if s2:
-            query += " AND name LIKE ?"
-            params.append(f"%{s2}%")
+        # 1. Búsqueda directa sin tildes con ambos términos limpios
+        query = "SELECT code, name, lat, lon FROM stops WHERE strip_accents(name) LIKE ?"
+        params = [f"%{c1}%"]
+        if c2:
+            query += " AND strip_accents(name) LIKE ?"
+            params.append(f"%{c2}%")
 
         c.execute(query, tuple(params))
         rows = c.fetchall()
+
+        # 2. Si no encuentra y la calle 1 tiene varias palabras (ej. 'jose arrieta'),
+        # intentar con la palabra más distintiva (ej. 'arrieta')
+        if not rows and len(c1.split()) > 1:
+            key1 = c1.split()[-1]
+            query = "SELECT code, name, lat, lon FROM stops WHERE strip_accents(name) LIKE ?"
+            params = [f"%{key1}%"]
+            if c2:
+                query += " AND strip_accents(name) LIKE ?"
+                params.append(f"%{c2}%")
+            c.execute(query, tuple(params))
+            rows = c.fetchall()
+
+        # 3. Mismo fallback si la calle 2 tiene varias palabras
+        if not rows and c2 and len(c2.split()) > 1:
+            key2 = c2.split()[-1]
+            query = "SELECT code, name, lat, lon FROM stops WHERE strip_accents(name) LIKE ?"
+            params = [f"%{c1}%"]
+            query += " AND strip_accents(name) LIKE ?"
+            params.append(f"%{key2}%")
+            c.execute(query, tuple(params))
+            rows = c.fetchall()
+
         conn.close()
 
         if not rows:

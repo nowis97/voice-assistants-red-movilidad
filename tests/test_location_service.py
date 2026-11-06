@@ -75,3 +75,13 @@ def test_normalize_destination_query():
     assert "Apoquindo 1234" in q3
     assert "Santiago, Chile" in q3
 
+
+def test_find_stops_by_intersection_accent_insensitive_jose_arrieta():
+    ida, vuelta = find_stops_by_intersection("jose arrieta", "ictinos")
+    assert ida is not None
+    assert ida["code"] == "PD289"
+    assert "Arrieta" in ida["name"]
+    assert vuelta is not None
+    assert vuelta["code"] == "PD260"
+
+
