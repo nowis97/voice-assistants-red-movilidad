@@ -1,16 +1,19 @@
+import math
 import logging
 import requests
 from typing import Optional, Dict, Any, List
 import config
 
 try:
-    from src.location_service import clean_intersection_name
+    from src.location_service import clean_intersection_name, clean_spoken_stop_code
 except ImportError:
     try:
-        from location_service import clean_intersection_name
+        from location_service import clean_intersection_name, clean_spoken_stop_code
     except ImportError:
         def clean_intersection_name(name: str) -> str:
             return name
+        def clean_spoken_stop_code(code: str) -> str:
+            return code
 
 logger = logging.getLogger(__name__)
 
@@ -442,4 +445,82 @@ def plan_trip(
             "transfer_routes": [],
             "total_itineraries": 0
         }
+
+
+def format_route_speech(
+    destination_text: str,
+    origin_lat: float,
+    origin_lon: float,
+    dest_lat: float,
+    dest_lon: float
+) -> str:
+    """
+    Construye la respuesta hablada óptima de Alexa indicando la micro a tomar,
+    el paradero con fonética clara ('P D 184'), el tiempo en vivo y la duración.
+    """
+    # 1. Verificar si está a distancia caminable (< 200m)
+    dlat = math.radians(dest_lat - origin_lat)
+    dlon = math.radians(dest_lon - origin_lon)
+    a = (math.sin(dlat / 2) ** 2 +
+         math.cos(math.radians(origin_lat)) * math.cos(math.radians(dest_lat)) *
+         math.sin(dlon / 2) ** 2)
+    dist_meters = int(6371000 * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a)))
+
+    if dist_meters < 200:
+        return "Ese destino está a solo una o dos cuadras de donde te encuentras, puedes llegar caminando en unos minutos."
+
+    # 2. Consultar el planificador de Red
+    plan = plan_trip(origin_lat, origin_lon, dest_lat, dest_lon)
+    if not plan["success"]:
+        return plan.get("error", "No pude consultar la ruta en este momento.")
+
+    directs = plan["direct_routes"]
+    transfers = plan["transfer_routes"]
+
+    if not directs and not transfers:
+        return f"No encontré recorridos disponibles para ir a {destination_text} en este momento."
+
+    # Caso 1: Ruta Directa
+    if directs:
+        best_direct = directs[0]
+        route = best_direct["route"]
+        stop_id = best_direct["from_stop_id"]
+        spoken_stop = clean_spoken_stop_code(stop_id)
+        duration = best_direct["duration_minutes"]
+        walk_m = best_direct.get("walk_distance_meters", 0)
+
+        # Consultar predictivo en tiempo real para esa micro en ese paradero
+        pred = get_stop_predictions(stop_id, route)
+        eta_phrase = ""
+        if pred["success"] and pred["buses"]:
+            first_bus = pred["buses"][0]
+            eta_phrase = f" La micro {_format_single_bus_arrival(first_bus)}."
+        else:
+            eta_phrase = " No hay buses en camino reportados en este momento."
+
+        walk_phrase = f", a {walk_m} metros," if walk_m > 30 else ""
+        return (
+            f"Para ir a {destination_text}, te sirve la {route} en tu paradero {spoken_stop}{walk_phrase}. "
+            f"{eta_phrase.strip()} El viaje toma unos {duration} minutos."
+        )
+
+    # Caso 2: Ruta con Transbordo
+    best_tr = transfers[0]
+    r1 = best_tr["first_route"]
+    s1 = clean_spoken_stop_code(best_tr["first_stop_id"])
+    tr_point = best_tr["transfer_point"]
+    r2 = best_tr["second_route"]
+    dur = best_tr["duration_minutes"]
+
+    pred1 = get_stop_predictions(best_tr["first_stop_id"], r1)
+    eta1 = ""
+    if pred1["success"] and pred1["buses"]:
+        eta1 = f" que {_format_single_bus_arrival(pred1['buses'][0])},"
+
+    return (
+        f"Para llegar a {destination_text} no hay micro directa desde tu esquina. "
+        f"Te sugiero tomar la {r1} en el paradero {s1}{eta1} bajarte en {tr_point} y "
+        f"combinar con la {r2}. En total son unos {dur} minutos de viaje."
+    )
+
 

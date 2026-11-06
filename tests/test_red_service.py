@@ -311,3 +311,86 @@ def test_plan_trip_network_error():
         assert res["transfer_routes"] == []
 
 
+def test_format_route_speech_direct_with_live_buses():
+    from src.red_service import format_route_speech
+
+    mock_plan = {
+        "success": True,
+        "direct_routes": [
+            {
+                "mode": "BUS",
+                "route": "513",
+                "from_stop_id": "PD184",
+                "from_stop_name": "Avenida Grecia con Salvador",
+                "walk_distance_meters": 120,
+                "duration_minutes": 25
+            }
+        ],
+        "transfer_routes": [],
+        "total_itineraries": 1
+    }
+
+    mock_pred = {
+        "success": True,
+        "buses": [
+            {"service": "513", "min_time": 4, "max_time": 4, "meters": 800}
+        ]
+    }
+
+    with patch("src.red_service.plan_trip", return_value=mock_plan), \
+         patch("src.red_service.get_stop_predictions", return_value=mock_pred):
+        speech = format_route_speech("Pedro de Valdivia con Providencia", -33.4578, -70.5891, -33.4225, -70.6094)
+        assert "513" in speech
+        assert "P D 184" in speech
+        assert "4 minutos" in speech
+        assert "25 minutos" in speech
+
+
+def test_format_route_speech_transfer():
+    from src.red_service import format_route_speech
+
+    mock_plan = {
+        "success": True,
+        "direct_routes": [],
+        "transfer_routes": [
+            {
+                "first_mode": "BUS",
+                "first_route": "506",
+                "first_stop_id": "PD184",
+                "first_stop_name": "Avenida Grecia con Salvador",
+                "transfer_point": "Plaza Italia",
+                "second_mode": "BUS",
+                "second_route": "405",
+                "duration_minutes": 38,
+                "walk_distance_meters": 90
+            }
+        ],
+        "total_itineraries": 1
+    }
+
+    mock_pred = {
+        "success": True,
+        "buses": [
+            {"service": "506", "min_time": 5, "max_time": 5, "meters": 1200}
+        ]
+    }
+
+    with patch("src.red_service.plan_trip", return_value=mock_plan), \
+         patch("src.red_service.get_stop_predictions", return_value=mock_pred):
+        speech = format_route_speech("Vitacura", -33.4578, -70.5891, -33.4000, -70.5500)
+        assert "no hay micro directa" in speech
+        assert "506" in speech
+        assert "P D 184" in speech
+        assert "Plaza Italia" in speech
+        assert "405" in speech
+        assert "38 minutos" in speech
+
+
+def test_format_route_speech_walking_distance():
+    from src.red_service import format_route_speech
+    # Distancia menor a 150m entre origen y destino
+    speech = format_route_speech("La esquina de al lado", -33.4578, -70.5891, -33.4579, -70.5892)
+    assert "caminando" in speech
+
+
+
