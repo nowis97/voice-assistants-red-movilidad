@@ -370,6 +370,114 @@ def test_route_to_destination_via_lambda_handler():
         assert "513" in output_speech
 
 
+def test_watch_bus_intent_handler_without_permission():
+    from src.alexa_handlers import WatchBusIntentHandler
+    from ask_sdk_core.handler_input import HandlerInput
+    from ask_sdk_model import RequestEnvelope, IntentRequest, Intent, Slot, Context, User
+    from ask_sdk_model.interfaces.system import SystemState as System
+
+    req = IntentRequest(
+        intent=Intent(
+            name="WatchBusIntent",
+            slots={"linea": Slot(name="linea", value="513")}
+        )
+    )
+    context = Context(system=System(user=User(user_id="user_test_no_perm")))
+    handler_input = HandlerInput(request_envelope=RequestEnvelope(request=req, context=context))
+
+    handler = WatchBusIntentHandler()
+    assert handler.can_handle(handler_input) is True
+    res = handler.handle(handler_input)
+    assert "permiso" in res.output_speech.ssml.lower()
+
+
+def test_watch_bus_intent_handler_already_arriving():
+    from src.alexa_handlers import WatchBusIntentHandler
+    from ask_sdk_core.handler_input import HandlerInput
+    from ask_sdk_model import RequestEnvelope, IntentRequest, Intent, Slot, Context, User, Permissions
+    from ask_sdk_model.interfaces.system import SystemState as System
+
+    req = IntentRequest(
+        intent=Intent(
+            name="WatchBusIntent",
+            slots={"linea": Slot(name="linea", value="513")}
+        )
+    )
+    user = User(user_id="user_test_perm", permissions=Permissions(consent_token="valid_consent"))
+    system = System(user=user, api_endpoint="https://api.amazonalexa.com", api_access_token="tok123")
+    context = Context(system=system)
+    handler_input = HandlerInput(request_envelope=RequestEnvelope(request=req, context=context))
+
+    handler = WatchBusIntentHandler()
+
+    mock_pred = {
+        "success": True,
+        "buses": [{"service": "513", "min_time": 2, "max_time": 3, "meters": 400}]
+    }
+
+    with patch("src.red_service.get_stop_predictions", return_value=mock_pred):
+        res = handler.handle(handler_input)
+        assert "salir ahora mismo" in res.output_speech.ssml.lower() or "cerca" in res.output_speech.ssml.lower()
+
+
+def test_watch_bus_intent_handler_starts_watching():
+    from src.alexa_handlers import WatchBusIntentHandler
+    from src.bus_watcher import watcher_manager
+    from ask_sdk_core.handler_input import HandlerInput
+    from ask_sdk_model import RequestEnvelope, IntentRequest, Intent, Slot, Context, User, Permissions
+    from ask_sdk_model.interfaces.system import SystemState as System
+
+    req = IntentRequest(
+        intent=Intent(
+            name="WatchBusIntent",
+            slots={
+                "linea": Slot(name="linea", value="513"),
+                "tiempo": Slot(name="tiempo", value="8")
+            }
+        )
+    )
+    user = User(user_id="user_watch_ok", permissions=Permissions(consent_token="valid_consent"))
+    system = System(user=user, api_endpoint="https://api.amazonalexa.com", api_access_token="tok_abc")
+    context = Context(system=system)
+    handler_input = HandlerInput(request_envelope=RequestEnvelope(request=req, context=context))
+
+    handler = WatchBusIntentHandler()
+
+    mock_pred = {
+        "success": True,
+        "buses": [{"service": "513", "min_time": 15, "max_time": 20, "meters": 3500}]
+    }
+
+    with patch("src.red_service.get_stop_predictions", return_value=mock_pred):
+        res = handler.handle(handler_input)
+        assert "vigilando" in res.output_speech.ssml.lower()
+        assert watcher_manager.has_active_job("user_watch_ok") is True
+
+    watcher_manager.cancel_watch("user_watch_ok")
+
+
+def test_cancel_watch_intent_handler():
+    from src.alexa_handlers import CancelWatchIntentHandler
+    from src.bus_watcher import watcher_manager
+    from ask_sdk_core.handler_input import HandlerInput
+    from ask_sdk_model import RequestEnvelope, IntentRequest, Intent, Context, User
+    from ask_sdk_model.interfaces.system import SystemState as System
+
+    watcher_manager.start_watch("user_cancel_test", "513", "PD289", "José Arrieta", 5, "http://api", "token")
+    assert watcher_manager.has_active_job("user_cancel_test") is True
+
+    req = IntentRequest(intent=Intent(name="CancelWatchIntent"))
+    context = Context(system=System(user=User(user_id="user_cancel_test")))
+    handler_input = HandlerInput(request_envelope=RequestEnvelope(request=req, context=context))
+
+    handler = CancelWatchIntentHandler()
+    assert handler.can_handle(handler_input) is True
+    res = handler.handle(handler_input)
+    assert "cancel" in res.output_speech.ssml.lower()
+    assert watcher_manager.has_active_job("user_cancel_test") is False
+
+
+
 
 
 

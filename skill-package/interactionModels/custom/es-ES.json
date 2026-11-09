@@ -298,6 +298,52 @@
             "voy al {Destination}",
             "voy a {Destination}"
           ]
+        },
+        {
+          "name": "WatchBusIntent",
+          "slots": [
+            {
+              "name": "linea",
+              "type": "LINEA_BUS"
+            },
+            {
+              "name": "tiempo",
+              "type": "AMAZON.NUMBER"
+            }
+          ],
+          "samples": [
+            "vigila la {linea}",
+            "vigila la micro {linea}",
+            "vigila el recorrido {linea}",
+            "vigilar la {linea}",
+            "avísame cuando la {linea} esté cerca",
+            "avísame cuando la micro {linea} esté cerca",
+            "avísame cuando la {linea} esté a {tiempo} minutos",
+            "avísame cuando la micro {linea} esté a {tiempo} minutos",
+            "avísame si la {linea} está a {tiempo} minutos",
+            "avísame cuando venga la {linea}",
+            "avísame cuando venga la micro {linea}",
+            "dime cuando la {linea} esté a {tiempo} minutos",
+            "dime cuando la micro {linea} esté a {tiempo} minutos",
+            "pon en vigilancia la {linea}",
+            "activa el modo vigilante para la {linea}",
+            "vigila el bus {linea}",
+            "avísame cuando falten {tiempo} minutos para la {linea}"
+          ]
+        },
+        {
+          "name": "CancelWatchIntent",
+          "slots": [],
+          "samples": [
+            "cancela la vigilancia",
+            "cancela el modo vigilante",
+            "detén la vigilancia",
+            "para la vigilancia",
+            "deja de vigilar la micro",
+            "no vigiles más la micro",
+            "cancela el seguimiento de la micro",
+            "deja de vigilar"
+          ]
         }
       ],
       "types": [

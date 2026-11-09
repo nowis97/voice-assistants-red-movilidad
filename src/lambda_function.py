@@ -15,6 +15,8 @@ from src.alexa_handlers import (
     GuardarPreferenciaIntentHandler,
     PrediccionMicroIntentHandler,
     RouteToDestinationIntentHandler,
+    WatchBusIntentHandler,
+    CancelWatchIntentHandler,
     ResumenViajeIntentHandler,
     BusesEnRutaIntentHandler,
     HelpIntentHandler,
@@ -104,6 +106,8 @@ sb.add_request_handler(ListarTarjetasIntentHandler())
 sb.add_request_handler(GuardarPreferenciaIntentHandler())
 sb.add_request_handler(PrediccionMicroIntentHandler())
 sb.add_request_handler(RouteToDestinationIntentHandler())
+sb.add_request_handler(WatchBusIntentHandler())
+sb.add_request_handler(CancelWatchIntentHandler())
 sb.add_request_handler(ResumenViajeIntentHandler())
 sb.add_request_handler(BusesEnRutaIntentHandler())
 sb.add_request_handler(HelpIntentHandler())

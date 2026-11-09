@@ -53,6 +53,9 @@
       },
       {
         "name": "alexa::devices:all:geolocation:read"
+      },
+      {
+        "name": "alexa::alerts:reminders:skill:readwrite"
       }
     ],
     "manifestVersion": "1.0",

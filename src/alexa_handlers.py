@@ -9,11 +9,13 @@ from ask_sdk_core.dispatch_components import (
 from ask_sdk_core.utils import is_request_type, is_intent_name
 from ask_sdk_core.handler_input import HandlerInput
 from ask_sdk_model import Response
-from ask_sdk_model.ui import SimpleCard
+from ask_sdk_model.ui import SimpleCard, AskForPermissionsConsentCard
 
 import config
 from src import red_service
 from src import location_service
+from src import reminders_service
+from src.bus_watcher import watcher_manager
 from src.location_service import (
     geocode_address,
     normalize_destination_query,
@@ -537,6 +539,127 @@ class RouteToDestinationIntentHandler(AbstractRequestHandler):
         # 3. Construir respuesta hablada
         speech = format_route_speech(dest_value, orig_coords[0], orig_coords[1], dest_lat, dest_lon)
         return handler_input.response_builder.speak(speech).response
+
+
+class WatchBusIntentHandler(AbstractRequestHandler):
+    """Handler para vigilar una micro y enviar un recordatorio cuando esté cerca."""
+
+    def can_handle(self, handler_input: HandlerInput) -> bool:
+        return is_intent_name("WatchBusIntent")(handler_input)
+
+    def handle(self, handler_input: HandlerInput) -> Response:
+        # 1. Verificar permisos de recordatorios
+        if not reminders_service.has_reminder_permission(handler_input):
+            speak_output = (
+                "Para avisarte cuando venga tu micro, necesito que actives el permiso de recordatorios en tu aplicación de Alexa. "
+                "Te he enviado una tarjeta a tu app para activarlo fácilmente con un toque."
+            )
+            return (
+                handler_input.response_builder
+                .speak(speak_output)
+                .set_card(AskForPermissionsConsentCard(permissions=["alexa::alerts:reminders:skill:readwrite"]))
+                .response
+            )
+
+        # 2. Extraer slots
+        slots = handler_input.request_envelope.request.intent.slots or {}
+        linea_slot = slots.get("linea")
+        tiempo_slot = slots.get("tiempo")
+
+        person_id = _extract_person_id(handler_input)
+        user_id = None
+        try:
+            user_id = handler_input.request_envelope.context.system.user.user_id
+        except Exception:
+            user_id = person_id or "default_user"
+
+        # Resolver línea
+        linea = linea_slot.value if linea_slot and linea_slot.value else None
+        if not linea:
+            linea = config.get_user_line(user_key_or_name=user_id, person_id=person_id)
+        if not linea:
+            linea = "513"  # Valor predeterminado
+
+        clean_linea = config.clean_alphanumeric_code(linea)
+
+        # Resolver umbral de minutos (default 5 min)
+        threshold_minutes = 5
+        if tiempo_slot and tiempo_slot.value:
+            try:
+                threshold_minutes = max(1, int(tiempo_slot.value))
+            except ValueError:
+                threshold_minutes = 5
+
+        # Resolver paradero y esquina
+        user_stops = config.get_user_stops(user_key_or_name=user_id, person_id=person_id)
+        ida_stop = user_stops.get("ida") if isinstance(user_stops, dict) else None
+        vuelta_stop = user_stops.get("vuelta") if isinstance(user_stops, dict) else None
+        intersection = user_stops.get("intersection") if isinstance(user_stops, dict) else None
+
+        stop_info = ida_stop or vuelta_stop
+        stop_code = (
+            (stop_info.get("code") if isinstance(stop_info, dict) else stop_info)
+            or config.DEFAULT_STOP_CODE
+        )
+        corner_name = intersection or (stop_info.get("name") if isinstance(stop_info, dict) else stop_code)
+
+        # 3. Comprobar predictivo actual: si ya viene cerca, avisar de inmediato
+        try:
+            pred = red_service.get_stop_predictions(stop_code, clean_linea)
+            if pred.get("success") and pred.get("buses"):
+                min_time = pred["buses"][0].get("min_time", 0)
+                if min_time <= threshold_minutes:
+                    speak_output = (
+                        f"Tu micro {clean_linea} ya está muy cerca, a {min_time} minutos de tu esquina "
+                        f"en {corner_name}. Es momento de salir ahora mismo."
+                    )
+                    return handler_input.response_builder.speak(speak_output).response
+        except Exception as e:
+            logger.warning(f"Error consultando predictivo inicial en WatchBusIntent: {e}")
+
+        # 4. Iniciar vigilancia en segundo plano
+        system = handler_input.request_envelope.context.system
+        api_endpoint = getattr(system, "api_endpoint", None) or "https://api.amazonalexa.com"
+        api_access_token = getattr(system, "api_access_token", None) or ""
+
+        watcher_manager.start_watch(
+            user_id=user_id,
+            linea=clean_linea,
+            stop_code=stop_code,
+            corner_name=corner_name,
+            threshold_minutes=threshold_minutes,
+            api_endpoint=api_endpoint,
+            api_access_token=api_access_token
+        )
+
+        speak_output = (
+            f"Perfecto, estaré vigilando la micro {clean_linea} en tu esquina de {corner_name}. "
+            f"Te avisaré apenas esté a {threshold_minutes} minutos."
+        )
+        return handler_input.response_builder.speak(speak_output).response
+
+
+class CancelWatchIntentHandler(AbstractRequestHandler):
+    """Handler para cancelar la vigilancia activa de micros."""
+
+    def can_handle(self, handler_input: HandlerInput) -> bool:
+        return is_intent_name("CancelWatchIntent")(handler_input)
+
+    def handle(self, handler_input: HandlerInput) -> Response:
+        person_id = _extract_person_id(handler_input)
+        user_id = None
+        try:
+            user_id = handler_input.request_envelope.context.system.user.user_id
+        except Exception:
+            user_id = person_id or "default_user"
+
+        cancelled = watcher_manager.cancel_watch(user_id)
+        if cancelled:
+            speak_output = "Listo, cancelé la vigilancia de tu micro."
+        else:
+            speak_output = "No tienes ninguna vigilancia de micro activa en este momento."
+
+        return handler_input.response_builder.speak(speak_output).response
 
 
 class HelpIntentHandler(AbstractRequestHandler):
