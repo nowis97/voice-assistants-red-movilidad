@@ -103,3 +103,29 @@ def test_local_server_dashboard_and_logs_endpoints():
     res_clear = client.post("/api/logs/clear")
     assert res_clear.status_code == 200
     assert res_clear.json()["status"] == "ok"
+
+
+def test_dashboard_watcher_api_endpoints():
+    from src.bus_watcher import watcher_manager
+
+    watcher_manager.start_watch(
+        user_id="test_user_dash",
+        linea="513",
+        stop_code="PD289",
+        corner_name="José Arrieta con Ictinos",
+        threshold_minutes=5,
+        api_endpoint="http://api.test",
+        api_access_token="tok123"
+    )
+
+    client = TestClient(app)
+    res = client.get("/api/watcher/active")
+    assert res.status_code == 200
+    jobs = res.json()
+    assert len(jobs) >= 1
+    assert any(j["linea"] == "513" for j in jobs)
+
+    res_cancel = client.post("/api/watcher/cancel?user_id=test_user_dash")
+    assert res_cancel.status_code == 200
+    assert res_cancel.json()["status"] == "ok"
+    assert watcher_manager.has_active_job("test_user_dash") is False

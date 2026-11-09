@@ -6,6 +6,7 @@ import logging
 from src.lambda_function import lambda_handler
 from src import red_service
 from src import observability
+from src.bus_watcher import watcher_manager
 import config
 
 logging.basicConfig(level=logging.INFO)
@@ -48,6 +49,19 @@ def clear_logs():
     """Limpia el buffer de eventos de observabilidad."""
     observability.store.clear()
     return {"status": "ok", "message": "Historial de observabilidad limpiado"}
+
+
+@app.get("/api/watcher/active")
+def get_active_watchers():
+    """Devuelve las tareas de vigilancia de micros activas."""
+    return watcher_manager.get_active_jobs()
+
+
+@app.post("/api/watcher/cancel")
+def cancel_watcher(user_id: str):
+    """Cancela la vigilancia de micros para un usuario específico."""
+    success = watcher_manager.cancel_watch(user_id)
+    return {"status": "ok", "cancelled": success}
 
 
 @app.get("/dashboard", response_class=HTMLResponse)
@@ -125,6 +139,22 @@ def dashboard():
       <div class="bg-gray-900/80 border border-gray-800 rounded-xl p-4">
         <p class="text-xs uppercase tracking-wider text-gray-400 font-medium">Última Petición</p>
         <p id="metric-last" class="text-sm font-semibold text-gray-300 mt-2 truncate">Esperando...</p>
+      </div>
+    </div>
+
+    <!-- Active Watchers Panel -->
+    <div class="mb-8">
+      <div class="flex items-center justify-between mb-3">
+        <div class="flex items-center gap-2">
+          <span class="text-xl">🔔</span>
+          <h2 class="text-lg font-semibold text-gray-200">Modo Vigilante (Micros en Monitoreo)</h2>
+          <span id="watcher-badge" class="px-2 py-0.5 text-xs font-semibold rounded-full bg-gray-800 text-gray-400 border border-gray-700">
+            0 Activas
+          </span>
+        </div>
+      </div>
+      <div id="watchers-container" class="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+        <!-- Rendered dynamically -->
       </div>
     </div>
 
@@ -281,9 +311,85 @@ def dashboard():
       }).join('');
     }
 
+    async function fetchWatchers() {
+      try {
+        const res = await fetch(`${apiPrefix}/watcher/active`);
+        if (!res.ok) return;
+        const jobs = await res.json();
+        renderWatchers(jobs);
+      } catch (err) {
+        console.error('Error fetching watchers:', err);
+      }
+    }
+
+    async function cancelWatcher(userId) {
+      if (!confirm('¿Deseas cancelar la vigilancia de esta micro?')) return;
+      try {
+        const res = await fetch(`${apiPrefix}/watcher/cancel?user_id=${encodeURIComponent(userId)}`, { method: 'POST' });
+        if (res.ok) {
+          fetchWatchers();
+        }
+      } catch (err) {
+        console.error('Error cancelling watcher:', err);
+      }
+    }
+
+    function renderWatchers(jobs) {
+      const container = document.getElementById('watchers-container');
+      const badge = document.getElementById('watcher-badge');
+      if (!container || !badge) return;
+
+      badge.textContent = `${jobs.length} Activa${jobs.length === 1 ? '' : 's'}`;
+      if (jobs.length > 0) {
+        badge.className = "px-2 py-0.5 text-xs font-semibold rounded-full bg-amber-900/60 text-amber-300 border border-amber-700/60 animate-pulse";
+      } else {
+        badge.className = "px-2 py-0.5 text-xs font-semibold rounded-full bg-gray-800 text-gray-400 border border-gray-700";
+      }
+
+      if (jobs.length === 0) {
+        container.innerHTML = `
+          <div class="col-span-full bg-gray-900/40 border border-gray-800/80 rounded-xl p-4 text-center text-sm text-gray-500">
+            No hay vigilancias de micros activas. Puedes pedirle a Alexa: <em>«Alexa, dile a Red Movilidad que vigile la 513»</em>.
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = jobs.map(job => {
+        const etaText = job.last_eta_minutes !== null ? `${job.last_eta_minutes} min` : 'Calculando...';
+        return `
+          <div class="bg-gray-900/90 border border-amber-500/40 rounded-xl p-4 shadow-lg shadow-amber-950/20">
+            <div class="flex items-start justify-between">
+              <div class="flex items-center gap-2.5">
+                <span class="px-2.5 py-1 text-sm font-black rounded-lg bg-red-600 text-white font-mono shadow-sm">
+                  ${job.linea}
+                </span>
+                <div>
+                  <p class="text-sm font-semibold text-gray-100">${job.corner_name}</p>
+                  <p class="text-xs text-gray-400 font-mono">Paradero: ${job.stop_code}</p>
+                </div>
+              </div>
+              <button onclick="cancelWatcher('${job.user_id}')" class="px-2.5 py-1 text-xs font-semibold bg-rose-950/80 hover:bg-rose-900 text-rose-300 rounded border border-rose-800/60 transition">
+                ✕ Cancelar
+              </button>
+            </div>
+            <div class="mt-3.5 flex items-center justify-between text-xs pt-3 border-t border-gray-800/80">
+              <span class="text-gray-400">ETA actual: <strong class="text-amber-400 font-bold">${etaText}</strong></span>
+              <span class="text-gray-400">Avisar a: <strong class="text-emerald-400 font-bold">≤ ${job.threshold_minutes} min</strong></span>
+              <span class="text-gray-500 font-mono">${job.checks_count} chequeos</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
     // Auto-refresh every 2 seconds
     fetchLogs();
-    setInterval(fetchLogs, 2000);
+    fetchWatchers();
+    setInterval(() => {
+      fetchLogs();
+      fetchWatchers();
+    }, 2000);
   </script>
 </body>
 </html>"""
