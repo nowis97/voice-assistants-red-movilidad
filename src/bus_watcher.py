@@ -6,7 +6,6 @@ from typing import Dict, Any, List, Optional
 
 from src import red_service
 from src import reminders_service
-from src import observability
 
 logger = logging.getLogger("bus_watcher")
 
@@ -126,9 +125,17 @@ class BusWatcherManager:
                     min_time = first_bus.get("min_time", 0)
                     job.last_eta_minutes = min_time
 
+                    logger.info(
+                        f"[bus_watcher] Chequeo #{job.checks_count} | Job: {job.job_id} | "
+                        f"Micro: {job.linea} en {job.stop_code} | ETA: {min_time} min (Umbral: {job.threshold_minutes} min)"
+                    )
+
                     # 3. Evaluar umbral de aviso
                     if min_time <= job.threshold_minutes:
-                        logger.info(f"¡Micro {job.linea} en rango ({min_time} <= {job.threshold_minutes} min)! Disparando recordatorio...")
+                        logger.info(
+                            f"[bus_watcher] ¡ALERTA DISPARADA! Micro {job.linea} a {min_time} min "
+                            f"(<= {job.threshold_minutes} min). Enviando recordatorio a Alexa..."
+                        )
                         spoken_text = (
                             f"Tu micro {job.linea} está a {min_time} minutos de tu esquina "
                             f"en {job.corner_name}, es hora de salir."
@@ -138,15 +145,6 @@ class BusWatcherManager:
                             api_access_token=job.api_access_token,
                             text=spoken_text
                         )
-                        # Registrar en observabilidad
-                        observability.store.record(
-                            request_type="WatcherTriggered",
-                            intent_name=f"Alerta: {job.linea} en camino",
-                            slots={"linea": job.linea, "eta": min_time, "paradero": job.stop_code},
-                            user_id=job.user_id,
-                            speech=spoken_text,
-                            status="success"
-                        )
                         with self._lock:
                             job.status = "triggered"
                             if user_id in self._jobs:
@@ -154,6 +152,10 @@ class BusWatcherManager:
                         break
                 else:
                     job.last_eta_minutes = None
+                    logger.info(
+                        f"[bus_watcher] Chequeo #{job.checks_count} | Job: {job.job_id} | "
+                        f"Micro: {job.linea} en {job.stop_code} | Sin predictivo disponible aún (esperando {self._poll_interval}s)"
+                    )
             except Exception as e:
                 consecutive_errors += 1
                 logger.warning(f"Error en chequeo de vigilancia {job.job_id}: {e}")

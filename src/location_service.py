@@ -386,10 +386,13 @@ def find_stops_by_intersection(street1: str, street2: str) -> Tuple[Optional[Dic
                 "longitude": p2_lon,
                 "distance_meters": 0
             }
+            logger.info(f"[location_service] Esquina '{street1}' con '{street2}' -> Ida: {p1_code}, Vuelta: {p2_code}")
             return stop_ida, stop_vuelta
 
         # Si solo encontramos uno con ambos nombres, buscar su opuesto en la vereda del frente
         opposing = find_opposing_stop(p1_code)
+        opp_code = opposing.get("code") if opposing else "ninguno"
+        logger.info(f"[location_service] Esquina '{street1}' con '{street2}' -> Ida: {p1_code}, Opuesto: {opp_code}")
         return stop_ida, opposing
     except Exception as e:
         logger.error(f"Error buscando paraderos por esquina {street1} con {street2}: {e}", exc_info=True)

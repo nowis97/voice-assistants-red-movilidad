@@ -24,11 +24,14 @@ from src.alexa_handlers import (
     SessionEndedRequestHandler,
     CatchAllExceptionHandler,
 )
-from src import observability
 import config
 
-logger = logging.getLogger()
-logger.setLevel(logging.INFO)
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] [%(name)s]: %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S"
+)
+logger = logging.getLogger("alexa")
 
 
 class LoggingRequestInterceptor(AbstractRequestInterceptor):
@@ -39,6 +42,8 @@ class LoggingRequestInterceptor(AbstractRequestInterceptor):
         req_attrs["_start_time"] = start_time
 
         req = handler_input.request_envelope.request
+        req_id = getattr(req, "request_id", "N/A")
+        locale = getattr(req, "locale", "N/A")
         req_type = getattr(req, "object_type", type(req).__name__)
         intent_name = getattr(getattr(req, "intent", None), "name", None)
 
@@ -47,8 +52,15 @@ class LoggingRequestInterceptor(AbstractRequestInterceptor):
             slots = {k: v.value for k, v in req.intent.slots.items() if v and v.value}
 
         user_id = None
+        person_id = None
         try:
             user_id = handler_input.request_envelope.context.system.user.user_id
+        except Exception:
+            pass
+        try:
+            person = getattr(handler_input.request_envelope.context.system, "person", None)
+            if person:
+                person_id = getattr(person, "person_id", None)
         except Exception:
             pass
 
@@ -57,39 +69,36 @@ class LoggingRequestInterceptor(AbstractRequestInterceptor):
         req_attrs["_slots"] = slots
         req_attrs["_user_id"] = user_id
 
-        logger.info(f"[ALEXA IN] Request: {intent_name or req_type} | Slots: {slots} | User: {user_id[-8:] if user_id else 'Anon'}")
+        user_label = user_id[-8:] if user_id else "Anon"
+        person_label = f"VoiceID:{person_id[-8:]}" if person_id else "NoVoiceID"
+        logger.info(
+            f"[ALEXA IN] {intent_name or req_type} (ID: {req_id}) | "
+            f"Slots: {slots} | User: {user_label} ({person_label}) | Locale: {locale}"
+        )
 
 
 class LoggingResponseInterceptor(AbstractResponseInterceptor):
-    """Intercepta la respuesta saliente, mide la latencia y la registra en el buffer de observabilidad."""
+    """Intercepta la respuesta saliente, mide la latencia y la registra en logs."""
     def process(self, handler_input: HandlerInput, response: Optional[Response] = None) -> None:
         req_attrs = handler_input.attributes_manager.request_attributes
         start_time = req_attrs.get("_start_time", time.time())
         latency_ms = int((time.time() - start_time) * 1000)
 
         speech_text = ""
-        if response and response.output_speech:
-            raw_speech = getattr(response.output_speech, "ssml", "") or getattr(response.output_speech, "text", "")
-            # Limpiar etiquetas SSML para lectura humana limpia
-            speech_text = re.sub(r"<[^>]+>", "", raw_speech).strip()
+        card_info = ""
+        directives_count = 0
+        if response:
+            if response.output_speech:
+                raw_speech = getattr(response.output_speech, "ssml", "") or getattr(response.output_speech, "text", "")
+                speech_text = re.sub(r"<[^>]+>", "", raw_speech).strip()
+            if getattr(response, "card", None):
+                card_title = getattr(response.card, "title", type(response.card).__name__)
+                card_info = f" | Card: '{card_title}'"
+            if getattr(response, "directives", None):
+                directives_count = len(response.directives)
 
-        req_type = req_attrs.get("_request_type", "Unknown")
-        intent_name = req_attrs.get("_intent_name") or req_type
-        slots = req_attrs.get("_slots", {})
-        user_id = req_attrs.get("_user_id")
-
-        logger.info(f"[ALEXA OUT] ({latency_ms}ms) -> {speech_text[:140]}")
-
-        # Guardar en el buffer circular de observabilidad
-        observability.store.record(
-            request_type=req_type,
-            intent_name=intent_name,
-            slots=slots,
-            user_id=user_id,
-            speech=speech_text,
-            latency_ms=latency_ms,
-            status="success"
-        )
+        directives_str = f" | Directives: {directives_count}" if directives_count else ""
+        logger.info(f"[ALEXA OUT] ({latency_ms}ms){card_info}{directives_str} -> «{speech_text}»")
 
 
 sb = CustomSkillBuilder()

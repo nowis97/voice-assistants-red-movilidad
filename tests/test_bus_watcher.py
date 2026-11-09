@@ -39,8 +39,7 @@ def test_bus_watcher_triggers_reminder_when_in_range():
     }
 
     with patch("src.red_service.get_stop_predictions", return_value=mock_pred), \
-         patch("src.reminders_service.create_spoken_reminder", return_value={"success": True}) as mock_remind, \
-         patch("src.observability.store.record") as mock_obs:
+         patch("src.reminders_service.create_spoken_reminder", return_value={"success": True}) as mock_remind:
 
         job = manager.start_watch(
             user_id="user_456",
@@ -55,7 +54,6 @@ def test_bus_watcher_triggers_reminder_when_in_range():
         # Wait for worker thread to evaluate
         time.sleep(0.2)
         assert mock_remind.called
-        assert mock_obs.called
         assert manager.has_active_job("user_456") is False
 
 

@@ -42,6 +42,7 @@ def get_bip_balance(bip_code: Optional[str] = None) -> Dict[str, Any]:
             data = response.json()
             balance = data.get("cardBalance", 0)
             benefit = data.get("benefitInfo", {})
+            logger.info(f"[red_service] Saldo Bip! tarjeta {card_number}: ${balance:,} (Beneficio activo: {benefit.get('isActive', False)})")
             return {
                 "success": True,
                 "card_number": card_number,
@@ -51,7 +52,7 @@ def get_bip_balance(bip_code: Optional[str] = None) -> Dict[str, Any]:
                 "raw": data
             }
         else:
-            logger.warning("Error consultando saldo: HTTP %s", response.status_code)
+            logger.warning(f"[red_service] Error consultando saldo tarjeta {card_number}: HTTP {response.status_code}")
             return {
                 "success": False,
                 "error": f"El servicio de Bip respondió con error HTTP {response.status_code}.",
@@ -103,6 +104,12 @@ def get_stop_predictions(stop_code: Optional[str] = None, service: Optional[str]
 
             # Ordenar buses por tiempo mínimo de llegada
             matching_buses.sort(key=lambda b: (b["min_time"], b["meters"]))
+
+            logger.info(
+                f"[red_service] Paradero {clean_stop} ({stop_name}): "
+                f"{len(matching_buses)} bus(es) para servicio {target_service or 'todos'} "
+                f"(total servicios en paradero: {len(all_services)})"
+            )
 
             return {
                 "success": True,
