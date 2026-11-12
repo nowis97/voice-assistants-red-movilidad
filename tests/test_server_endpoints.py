@@ -92,3 +92,36 @@ def test_quick_api_endpoints():
         res_micro = client.get("/api/micro?paradero=PD289&linea=513")
         assert res_micro.status_code == 200
         assert res_micro.json()["success"] is True
+
+
+def test_tts_clip_and_cast_devices_endpoints():
+    from src import google_cast_service
+
+    client = TestClient(app)
+
+    try:
+        assert client.get("/api/tts/nonexistent.mp3").status_code == 404
+
+        with patch("src.google_cast_service.gTTS") as mock_gtts:
+            mock_gtts.return_value.write_to_fp.side_effect = lambda fp: fp.write(b"ID3_FAKE_MP3")
+            clip_id = google_cast_service.create_tts_clip("Prueba de audio")
+
+        res_mp3 = client.get(f"/api/tts/{clip_id}.mp3")
+        assert res_mp3.status_code == 200
+        assert res_mp3.headers["content-type"].startswith("audio/mpeg")
+        assert res_mp3.content == b"ID3_FAKE_MP3"
+
+        with patch(
+            "src.google_cast_service.list_cast_devices",
+            return_value=[{"name": "Parlante Living", "cast_type": "audio"}],
+        ):
+            res_cast = client.get("/api/cast/devices")
+        assert res_cast.status_code == 200
+        assert res_cast.json() == {"devices": [{"name": "Parlante Living", "cast_type": "audio"}]}
+
+        # Smoke check verifying google_smarthome.router is mounted on app
+        res_smarthome_smoke = client.get("/google/oauth/auth")
+        assert res_smarthome_smoke.status_code != 404
+    finally:
+        google_cast_service.clear_tts_clips()
+

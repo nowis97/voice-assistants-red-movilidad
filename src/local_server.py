@@ -1,12 +1,22 @@
 import uvicorn
-from fastapi import FastAPI, Request, HTTPException
+from fastapi import FastAPI, Request, HTTPException, Response
 from fastapi.responses import JSONResponse
 import logging
 
-from src.lambda_function import lambda_handler
-from src import red_service
-from src.bus_watcher import watcher_manager
 import config
+
+try:
+    from src.lambda_function import lambda_handler
+    from src import red_service
+    from src.bus_watcher import watcher_manager
+    from src import google_cast_service
+    from src import google_smarthome
+except ImportError:
+    from lambda_function import lambda_handler
+    import red_service
+    from bus_watcher import watcher_manager
+    import google_cast_service
+    import google_smarthome
 
 logging.basicConfig(
     level=logging.INFO,
@@ -20,6 +30,8 @@ app = FastAPI(
     description="Backend local y webhook para la Skill de Alexa de transporte en Santiago de Chile",
     version="1.2.0"
 )
+
+app.include_router(google_smarthome.router)
 
 
 @app.api_route("/", methods=["GET", "POST"])
@@ -70,6 +82,21 @@ def api_micro(paradero: str = None, linea: str = None):
 def api_gps(recorrido: str):
     """Prueba de buses GPS activos en vivo."""
     return {"recorrido": recorrido, "buses": red_service.get_buses_on_route(recorrido)}
+
+
+@app.get("/api/tts/{clip_id}.mp3")
+def api_tts_clip(clip_id: str):
+    """Entrega el audio MP3 generado en RAM para reproducción local vía Google Cast."""
+    audio = google_cast_service.get_tts_clip(clip_id)
+    if audio is None:
+        raise HTTPException(status_code=404, detail="TTS clip not found")
+    return Response(content=audio, media_type="audio/mpeg")
+
+
+@app.get("/api/cast/devices")
+def api_cast_devices():
+    """Lista los dispositivos Google Cast visibles en la red local para configurar GOOGLE_CAST_DEVICE."""
+    return {"devices": google_cast_service.list_cast_devices()}
 
 
 if __name__ == "__main__":
