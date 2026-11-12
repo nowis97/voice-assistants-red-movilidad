@@ -168,3 +168,49 @@ def test_speak_on_home_stops_discovery_on_cast_exception(monkeypatch):
     assert ok is False
     fake_speaker.disconnect.assert_called_once_with(timeout=2.0)
     mock_stop.assert_called_once_with(fake_browser)
+
+
+def test_speak_on_home_waits_for_playback_settle_window(monkeypatch):
+    monkeypatch.setattr(config, "GOOGLE_CAST_DEVICE", "Parlante Living")
+    monkeypatch.setattr(config, "LOCAL_SERVER_IP", "192.168.0.115")
+    monkeypatch.setattr(config, "PORT", 8000)
+
+    fake_speaker = MagicMock()
+    fake_speaker.cast_info = SimpleNamespace(friendly_name="Parlante Living")
+
+    states = ["IDLE", "IDLE", "PLAYING", "PLAYING", "IDLE"]
+    state_iter = iter(states)
+
+    class DynamicStatus:
+        @property
+        def player_state(self):
+            try:
+                return next(state_iter)
+            except StopIteration:
+                return "IDLE"
+
+    fake_speaker.media_controller.status = DynamicStatus()
+    fake_browser = MagicMock()
+
+    sleep_calls = []
+
+    def mock_sleep(seconds):
+        sleep_calls.append(seconds)
+
+    def fake_gtts(text, lang="es"):
+        inst = MagicMock()
+        inst.write_to_fp.side_effect = lambda fp: fp.write(b"FAKE_MP3")
+        return inst
+
+    with patch("src.google_cast_service.gTTS", side_effect=fake_gtts), \
+         patch("src.google_cast_service.pychromecast.get_listed_chromecasts", return_value=([fake_speaker], fake_browser)), \
+         patch("src.google_cast_service.pychromecast.discovery.stop_discovery") as mock_stop, \
+         patch("src.google_cast_service.time.sleep", side_effect=mock_sleep):
+        ok = google_cast_service.speak_on_home("Mensaje de prueba")
+
+    assert ok is True
+    # Verifies settle poll occurred (0.1s) and then active playback wait (0.25s)
+    assert 0.1 in sleep_calls
+    assert 0.25 in sleep_calls
+    fake_speaker.disconnect.assert_called_once_with(timeout=2.0)
+    mock_stop.assert_called_once_with(fake_browser)

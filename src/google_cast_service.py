@@ -26,6 +26,7 @@ logger = logging.getLogger(__name__)
 
 MAX_TTS_CLIPS = 10
 CAST_DISCOVERY_TIMEOUT = 5.0
+CAST_SETTLE_TIMEOUT = 0.5
 CAST_PLAYBACK_MAX_WAIT = 20.0
 
 _tts_clips: "OrderedDict[str, bytes]" = OrderedDict()
@@ -172,6 +173,13 @@ def speak_on_home(text: str, device_name: Optional[str] = None) -> bool:
             mc = target_cast.media_controller
             mc.play_media(media_url, "audio/mpeg")
             mc.block_until_active(timeout=CAST_DISCOVERY_TIMEOUT)
+
+            settle_deadline = time.monotonic() + CAST_SETTLE_TIMEOUT
+            while (
+                getattr(getattr(mc, "status", None), "player_state", None) not in ("PLAYING", "BUFFERING")
+                and time.monotonic() < settle_deadline
+            ):
+                time.sleep(0.1)
 
             deadline = time.monotonic() + CAST_PLAYBACK_MAX_WAIT
             while (
