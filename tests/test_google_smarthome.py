@@ -20,6 +20,7 @@ REDIRECT_URI = "https://oauth-redirect.googleusercontent.com/r/red-movilidad-pro
 
 @pytest.fixture
 def smarthome_client(monkeypatch):
+    google_smarthome.clear_used_codes()
     monkeypatch.setattr(config, "GOOGLE_OAUTH_CLIENT_ID", "client-123")
     monkeypatch.setattr(config, "GOOGLE_OAUTH_CLIENT_SECRET", "super-secret-xyz")
     monkeypatch.setattr(config, "GOOGLE_OAUTH_PIN", "2468")
@@ -29,6 +30,7 @@ def smarthome_client(monkeypatch):
     test_app.include_router(google_smarthome.router)
     yield TestClient(test_app)
     watcher_manager.cancel_watch("google_home")
+    google_smarthome.clear_used_codes()
 
 
 def _obtain_tokens(client: TestClient):
@@ -114,6 +116,50 @@ def test_oauth_full_code_and_refresh_flow_including_basic_auth(smarthome_client)
     ref_body = res_ref.json()
     assert ref_body["access_token"]
     assert ref_body["token_type"] == "Bearer"
+
+
+def test_oauth_token_authorization_code_cannot_be_reused(smarthome_client):
+    res_auth = smarthome_client.post(
+        "/google/oauth/auth",
+        data={
+            "client_id": "client-123",
+            "redirect_uri": REDIRECT_URI,
+            "state": "state-reuse",
+            "pin": "2468",
+        },
+        follow_redirects=False,
+    )
+    assert res_auth.status_code == 302
+    loc = res_auth.headers["location"]
+    code = parse_qs(urlparse(loc).query)["code"][0]
+
+    token_data = {
+        "grant_type": "authorization_code",
+        "code": code,
+        "redirect_uri": REDIRECT_URI,
+        "client_id": "client-123",
+        "client_secret": "super-secret-xyz",
+    }
+    # First redemption succeeds
+    res_first = smarthome_client.post("/google/oauth/token", data=token_data)
+    assert res_first.status_code == 200
+    assert res_first.json()["access_token"]
+
+    # Second redemption with same authorization code must fail with 400 invalid_grant
+    res_second = smarthome_client.post("/google/oauth/token", data=token_data)
+    assert res_second.status_code == 400
+    assert res_second.json()["error"] == "invalid_grant"
+
+
+def test_mark_code_used_bounds_and_prunes():
+    google_smarthome.clear_used_codes()
+    # Expired entry is pruned on next operation
+    google_smarthome._mark_code_used("old_code", 100)
+    assert "old_code" in google_smarthome._used_codes
+    assert google_smarthome._mark_code_used("new_code", 2000000000) is True
+    assert "old_code" not in google_smarthome._used_codes
+    assert "new_code" in google_smarthome._used_codes
+    assert google_smarthome._mark_code_used("new_code", 2000000000) is False
 
 
 def test_oauth_token_rejects_bad_secret_and_tampered_refresh_token(smarthome_client):
@@ -407,4 +453,27 @@ def test_execute_device_action_momentary_off_and_immediate_arrival(monkeypatch):
             google_smarthome.execute_device_action("red_vigilante", True)
             assert not mock_start.called
             assert "ya está muy cerca" in mock_cast.call_args[0][0]
+
+
+def test_smarthome_handles_null_payload_gracefully(smarthome_client):
+    access_token = _obtain_tokens(smarthome_client)["access_token"]
+    headers = {"Authorization": f"Bearer {access_token}"}
+
+    # QUERY with explicit null payload
+    res_query_null = smarthome_client.post(
+        "/google/smarthome",
+        headers=headers,
+        json={"requestId": "req-null-query", "inputs": [{"intent": "action.devices.QUERY", "payload": None}]},
+    )
+    assert res_query_null.status_code == 200
+    assert res_query_null.json()["payload"]["devices"] == {}
+
+    # EXECUTE with explicit null payload
+    res_exec_null = smarthome_client.post(
+        "/google/smarthome",
+        headers=headers,
+        json={"requestId": "req-null-exec", "inputs": [{"intent": "action.devices.EXECUTE", "payload": None}]},
+    )
+    assert res_exec_null.status_code == 200
+    assert res_exec_null.json()["payload"]["commands"] == []
 

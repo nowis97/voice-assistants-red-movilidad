@@ -1,4 +1,5 @@
 import base64
+from collections import OrderedDict
 import hashlib
 import hmac
 import html
@@ -36,6 +37,38 @@ ALLOWED_REDIRECT_PREFIXES = (
 )
 CODE_TTL_SECONDS = 300
 ACCESS_TTL_SECONDS = 3600
+MAX_USED_CODES = 256
+
+_used_codes: "OrderedDict[str, int]" = OrderedDict()
+_used_codes_lock = threading.Lock()
+
+
+def _mark_code_used(code: str, exp: int) -> bool:
+    """Atomically checks and records an authorization code.
+    Returns True if the code was not used before and was successfully marked.
+    Returns False if the code was already used.
+    Prunes expired codes and bounds the cache size.
+    """
+    now = int(time.time())
+    with _used_codes_lock:
+        expired = [c for c, e in _used_codes.items() if e <= now]
+        for c in expired:
+            del _used_codes[c]
+
+        if code in _used_codes:
+            return False
+
+        while len(_used_codes) >= MAX_USED_CODES:
+            _used_codes.popitem(last=False)
+
+        _used_codes[code] = exp
+        return True
+
+
+def clear_used_codes() -> None:
+    """Limpia el caché de códigos usados (para pruebas)."""
+    with _used_codes_lock:
+        _used_codes.clear()
 
 
 def _b64u_encode(raw: bytes) -> str:
@@ -228,6 +261,11 @@ async def oauth_token(request: Request):
         ):
             return JSONResponse({"error": "invalid_grant"}, status_code=status.HTTP_400_BAD_REQUEST)
 
+        code_exp = int(payload.get("exp", 0))
+        if not _mark_code_used(code, code_exp):
+            logger.warning("Intento de reutilizar código de autorización OAuth ya canjeado")
+            return JSONResponse({"error": "invalid_grant"}, status_code=status.HTTP_400_BAD_REQUEST)
+
         now = int(time.time())
         access_token = _sign_token(
             {"kind": "access", "sub": AGENT_USER_ID, "exp": now + ACCESS_TTL_SECONDS},
@@ -408,7 +446,7 @@ async def smarthome_fulfillment(request: Request):
         }
 
     if intent == "action.devices.QUERY":
-        req_devices = first_input.get("payload", {}).get("devices", [])
+        req_devices = (first_input.get("payload") or {}).get("devices", [])
         devices_state: Dict[str, Dict[str, Any]] = {}
         for dev in req_devices:
             dev_id = dev.get("id", "")
@@ -426,7 +464,7 @@ async def smarthome_fulfillment(request: Request):
 
     if intent == "action.devices.EXECUTE":
         results: List[Dict[str, Any]] = []
-        for cmd in first_input.get("payload", {}).get("commands", []):
+        for cmd in (first_input.get("payload") or {}).get("commands", []):
             cmd_devices = cmd.get("devices", [])
             executions = cmd.get("execution", [])
             for exc_item in executions:
