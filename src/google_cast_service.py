@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 MAX_TTS_CLIPS = 10
 CAST_DISCOVERY_TIMEOUT = 5.0
 CAST_SETTLE_TIMEOUT = 0.5
-CAST_PLAYBACK_MAX_WAIT = 20.0
+CAST_PLAYBACK_MAX_WAIT = 35.0
 
 _tts_clips: "OrderedDict[str, bytes]" = OrderedDict()
 _clip_lock = threading.Lock()
@@ -108,21 +108,38 @@ def _extract_cast_info(cast: Any) -> Dict[str, Any]:
     }
 
 
+def _known_hosts_kwargs() -> Dict[str, Any]:
+    """Devuelve kwargs con known_hosts si GOOGLE_CAST_HOST tiene IPs configuradas."""
+    raw = getattr(config, "GOOGLE_CAST_HOST", "") or ""
+    hosts = [h.strip() for h in raw.split(",") if h.strip()]
+    return {"known_hosts": hosts} if hosts else {}
+
+
+def _stop_cast_browser(browser: Any) -> None:
+    """Detiene CastBrowser usando la API vigente o fallback legacy."""
+    if browser is None:
+        return
+    try:
+        stop_fn = getattr(browser, "stop_discovery", None)
+        if callable(stop_fn):
+            stop_fn()
+        else:
+            pychromecast.discovery.stop_discovery(browser)
+    except Exception:
+        pass
+
+
 def list_cast_devices(timeout: float = CAST_DISCOVERY_TIMEOUT) -> List[Dict[str, Any]]:
     """Lista los dispositivos Google Cast visibles en la red local."""
     browser = None
     try:
-        casts, browser = pychromecast.get_chromecasts(timeout=timeout)
+        casts, browser = pychromecast.get_chromecasts(timeout=timeout, **_known_hosts_kwargs())
         return [_extract_cast_info(c) for c in casts]
     except Exception as exc:
         logger.error(f"Error descubriendo dispositivos Google Cast: {exc}", exc_info=True)
         return []
     finally:
-        if browser is not None:
-            try:
-                pychromecast.discovery.stop_discovery(browser)
-            except Exception:
-                pass
+        _stop_cast_browser(browser)
 
 
 def _match_target_cast(casts: List[Any], target_name: str) -> Optional[Any]:
@@ -157,6 +174,7 @@ def speak_on_home(text: str, device_name: Optional[str] = None) -> bool:
             casts, browser = pychromecast.get_listed_chromecasts(
                 friendly_names=[target_name],
                 discovery_timeout=CAST_DISCOVERY_TIMEOUT,
+                **_known_hosts_kwargs(),
             )
             target_cast = _match_target_cast(casts, target_name)
             if target_cast is None:
@@ -199,8 +217,4 @@ def speak_on_home(text: str, device_name: Optional[str] = None) -> bool:
                     target_cast.disconnect(timeout=2.0)
                 except Exception:
                     pass
-            if browser is not None:
-                try:
-                    pychromecast.discovery.stop_discovery(browser)
-                except Exception:
-                    pass
+            _stop_cast_browser(browser)
