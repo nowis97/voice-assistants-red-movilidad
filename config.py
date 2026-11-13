@@ -19,6 +19,18 @@ DEFAULT_SERVICE = os.getenv("DEFAULT_SERVICE", "513").strip().upper()
 ALEXA_SKILL_ID = os.getenv("ALEXA_SKILL_ID", "")
 PORT = int(os.getenv("PORT", "8000"))
 
+# Google Home Smart Home + Google Cast TTS
+GOOGLE_OAUTH_CLIENT_ID = os.getenv("GOOGLE_OAUTH_CLIENT_ID", "red-movilidad-google")
+GOOGLE_OAUTH_CLIENT_SECRET = os.getenv("GOOGLE_OAUTH_CLIENT_SECRET", "")
+GOOGLE_OAUTH_PIN = os.getenv("GOOGLE_OAUTH_PIN", "")
+GOOGLE_CAST_DEVICE = os.getenv("GOOGLE_CAST_DEVICE", "")
+LOCAL_SERVER_IP = os.getenv("LOCAL_SERVER_IP", "")
+try:
+    GOOGLE_WATCH_THRESHOLD_MINUTES = max(1, int(os.getenv("GOOGLE_WATCH_THRESHOLD_MINUTES") or 5))
+except ValueError:
+    GOOGLE_WATCH_THRESHOLD_MINUTES = 5
+
+
 # Headers oficiales extraídos de la ingeniería inversa de la app Red Movilidad
 RED_HEADERS = {
     "Accept": "application/json",

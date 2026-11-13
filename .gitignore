@@ -37,3 +37,7 @@ Thumbs.db
 
 # Alexa CLI artifacts
 .ask/
+
+# Git worktrees & Superpowers scratch
+.worktrees/
+.superpowers/sdd/

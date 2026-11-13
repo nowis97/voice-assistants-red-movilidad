@@ -7,6 +7,11 @@ from typing import Dict, Any, List, Optional
 from src import red_service
 from src import reminders_service
 
+try:
+    from src import google_cast_service
+except ImportError:
+    import google_cast_service
+
 logger = logging.getLogger("bus_watcher")
 
 SAFETY_TIMEOUT_SECONDS = 1800  # 30 minutos de tiempo máximo de vigilancia
@@ -26,6 +31,7 @@ class WatcherJob:
     last_eta_minutes: Optional[int] = None
     checks_count: int = 0
     status: str = "active"
+    notify_channel: str = "alexa"
 
 
 class BusWatcherManager:
@@ -65,7 +71,8 @@ class BusWatcherManager:
         corner_name: str,
         threshold_minutes: int,
         api_endpoint: str,
-        api_access_token: str
+        api_access_token: str,
+        notify_channel: str = "alexa"
     ) -> WatcherJob:
         # Cancelar cualquier trabajo previo del usuario
         self.cancel_watch(user_id)
@@ -83,7 +90,8 @@ class BusWatcherManager:
             threshold_minutes=threshold_minutes,
             api_endpoint=api_endpoint,
             api_access_token=api_access_token,
-            created_at=time.time()
+            created_at=time.time(),
+            notify_channel=notify_channel
         )
 
         with self._lock:
@@ -134,17 +142,46 @@ class BusWatcherManager:
                     if min_time <= job.threshold_minutes:
                         logger.info(
                             f"[bus_watcher] ¡ALERTA DISPARADA! Micro {job.linea} a {min_time} min "
-                            f"(<= {job.threshold_minutes} min). Enviando recordatorio a Alexa..."
+                            f"(<= {job.threshold_minutes} min)."
                         )
                         spoken_text = (
                             f"Tu micro {job.linea} está a {min_time} minutos de tu esquina "
                             f"en {job.corner_name}, es hora de salir."
                         )
-                        reminders_service.create_spoken_reminder(
-                            api_endpoint=job.api_endpoint,
-                            api_access_token=job.api_access_token,
-                            text=spoken_text
-                        )
+                        if job.notify_channel == "google_cast":
+                            try:
+                                cast_ok = google_cast_service.speak_on_home(spoken_text)
+                                if cast_ok:
+                                    logger.info(
+                                        f"[Watcher {job.job_id}] Aviso Google Cast entregado | "
+                                        f"linea={job.linea}, eta={min_time}m"
+                                    )
+                                else:
+                                    logger.warning(
+                                        f"[Watcher {job.job_id}] No se pudo entregar aviso Google Cast | "
+                                        f"linea={job.linea}, eta={min_time}m"
+                                    )
+                            except Exception as e:
+                                logger.error(
+                                    f"[Watcher {job.job_id}] Falló entrega de aviso Google Cast: {e}",
+                                    exc_info=True
+                                )
+                        else:
+                            result = reminders_service.create_spoken_reminder(
+                                api_endpoint=job.api_endpoint,
+                                api_access_token=job.api_access_token,
+                                text=spoken_text
+                            )
+                            if result.get("success"):
+                                logger.info(
+                                    f"[Watcher {job.job_id}] Recordatorio Alexa enviado | "
+                                    f"linea={job.linea}, eta={min_time}m, alert_token={result.get('alert_token')}"
+                                )
+                            else:
+                                logger.warning(
+                                    f"[Watcher {job.job_id}] Falló envío de recordatorio | "
+                                    f"linea={job.linea}, error={result.get('error')}"
+                                )
                         with self._lock:
                             job.status = "triggered"
                             if user_id in self._jobs:
